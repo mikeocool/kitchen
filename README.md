@@ -1,3 +1,9 @@
+An alternative to devcontainers built on mise and tailscale.
+
+```
+./kitchen <path to workspace>
+```
+
 ## TODO
 
 Clone and installl dotfles

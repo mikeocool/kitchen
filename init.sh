@@ -17,7 +17,7 @@ echo "Running tailscale up..."
 tailscale up --ssh
 
 TAILSCALE_IP=$(tailscale ip --4)
-echo "Connect via ssh: k@${TAILSCALE_IP}"
+echo "Connect via ssh: ssh k@${TAILSCALE_IP}"
 
 # TODO install dotfiles based on env
 
