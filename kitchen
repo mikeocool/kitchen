@@ -49,6 +49,15 @@ if [[ -n "${KITCHEN_MOUNTS:-}" ]]; then
     done
 fi
 
+NETWORK_ARGS=()
+if [[ -n "${KITCHEN_NETWORK:-}" ]]; then
+    if ! docker network inspect "${KITCHEN_NETWORK}" &>/dev/null; then
+        echo "Creating docker network ${KITCHEN_NETWORK}..."
+        docker network create "${KITCHEN_NETWORK}"
+    fi
+    NETWORK_ARGS=(--network "${KITCHEN_NETWORK}")
+fi
+
 docker run -d --name "${KITCHEN_NAME}-kitchen" \
     --hostname "${KITCHEN_NAME}-kitchen" \
     -v "${KITCHEN_WORKSPACE}:/workspaces/${KITCHEN_NAME}" \
@@ -56,6 +65,7 @@ docker run -d --name "${KITCHEN_NAME}-kitchen" \
     -e "KITCHEN_WORKSPACE=/workspaces/${KITCHEN_NAME}" \
     -e "DOCKER_SOCK_GID=${DOCKER_SOCK_GID}" \
     "${MOUNT_ARGS[@]}" \
+    "${NETWORK_ARGS[@]}" \
     "${KITCHEN_NAME}-kitchen"
 
 while read -r line; do
