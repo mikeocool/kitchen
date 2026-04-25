@@ -24,11 +24,14 @@ echo "Starting ${KITCHEN_NAME}-kitchen..."
 
 docker build -t "${KITCHEN_NAME}-kitchen" "${SCRIPT_DIR}"
 
+DOCKER_SOCK_GID="$(stat -c '%g' /var/run/docker.sock)"
+
 docker run -d --name "${KITCHEN_NAME}-kitchen" \
     --hostname "${KITCHEN_NAME}-kitchen" \
     -v "${WORKSPACE}:/workspaces/${KITCHEN_NAME}" \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e "KITCHEN_WORKSPACE=/workspaces/${KITCHEN_NAME}" \
+    -e "DOCKER_SOCK_GID=${DOCKER_SOCK_GID}" \
     "${KITCHEN_NAME}-kitchen"
 
 while read -r line; do

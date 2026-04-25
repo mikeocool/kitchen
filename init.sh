@@ -18,6 +18,11 @@ if [[ -f "${KITCHEN_WORKSPACE}/.kitchenenv.local" ]]; then
     source "${KITCHEN_WORKSPACE}/.kitchenenv.local"
 fi
 
+# Remap docker group GID to match the host socket so all sessions (including SSH) can use Docker
+if [[ -n "${DOCKER_SOCK_GID:-}" ]]; then
+    sudo groupmod -g "${DOCKER_SOCK_GID}" docker
+fi
+
 # Start tailscaled
 echo "Starting tailscaled"
 sudo bash -c 'tailscaled --tun=userspace-networking --socks5-server=localhost:1055 >> /var/log/tailscaled.log 2>&1' &
