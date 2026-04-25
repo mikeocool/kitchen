@@ -2,17 +2,33 @@
 
 set -euo pipefail
 
-WORKSPACE="$(realpath "$1")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE="$(realpath "${1:-$PWD}")"
 KITCHEN_NAME="$(basename "$WORKSPACE")"
+
+if docker inspect --type container "${KITCHEN_NAME}-kitchen" &>/dev/null; then
+    STATE="$(docker inspect --type container -f '{{.State.Status}}' "${KITCHEN_NAME}-kitchen")"
+
+    if [[ "${STATE}" == "exited" ]]; then
+        # TODO maybe support restarting containers -- maybe only rm
+        # if we build the image and it has changed or the args are going to change?
+        echo "Removing old ${KITCHEN_NAME}-kitchen container."
+        docker rm "${KITCHEN_NAME}-kitchen"
+    else
+        echo "${KITCHEN_NAME}-kitchen already exists. State: ${STATE}"
+        exit 1
+    fi
+fi
 
 echo "Starting ${KITCHEN_NAME}-kitchen..."
 
-docker build -t "${KITCHEN_NAME}-kitchen" .
+docker build -t "${KITCHEN_NAME}-kitchen" "${SCRIPT_DIR}"
 
 docker run -d --name "${KITCHEN_NAME}-kitchen" \
     --hostname "${KITCHEN_NAME}-kitchen" \
     -v "${WORKSPACE}:/workspaces/${KITCHEN_NAME}" \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    -e "KITCHEN_WORKSPACE=/workspaces/${KITCHEN_NAME}" \
     "${KITCHEN_NAME}-kitchen"
 
 while read -r line; do
