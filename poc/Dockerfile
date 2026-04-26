@@ -4,7 +4,7 @@ FROM debian:13-slim
 
 RUN apt-get update  \
     && apt-get -y --no-install-recommends install  \
-        sudo curl git ca-certificates build-essential jq zsh vim openssh-client \
+        sudo curl git ca-certificates build-essential jq zsh vim openssh-client pkg-config libssl-dev ncurses-term \
     && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
