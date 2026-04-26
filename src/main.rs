@@ -60,7 +60,7 @@ async fn build(workspace: &Option<PathBuf>) {
     let kitchen = get_kitchen(&workspace);
     println!("Building {}...", kitchen.name);
 
-    image::build(&kitchen.name).await;
+    image::build(&kitchen.container_name()).await;
 }
 
 async fn up(workspace: &Option<PathBuf>) {
@@ -75,14 +75,16 @@ async fn up(workspace: &Option<PathBuf>) {
             let running = info.state.and_then(|s| s.running).unwrap_or(false);
             if running {
                 println!("Container {container_name} is already running.");
+                return;
             } else {
                 println!("Container {container_name} exists but is not running.");
+                return;
             }
         }
-        Err(_) => {
-            println!("Container {container_name} does not exist");
-        }
+        Err(_) => {}
     }
+
+    image::build(&kitchen.container_name()).await;
 
     println!(
         "Kitchen: {} at {}",
