@@ -18,3 +18,10 @@ SSH in
 cd /workspaces/kitchen
 cargo run
 ```
+
+## TODO
+
+- Define toml format and ready from and merge:
+    - <workspace>/.kitchen/config.toml
+    - <workspace>/.kitchen/config.local.toml
+    - <workspace>/.kitchen.toml(?)
