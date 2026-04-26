@@ -5,6 +5,10 @@ edition = "2024"
 
 [dependencies]
 bollard = "0.20.2"
+bytes = "1.11.1"
 clap = { version = "4.6.1", features = ["derive"] }
+flate2 = "1.1.9"
+futures-util = "0.3.32"
+tar = "0.4.45"
 tokio = { version = "1.52.1", features = ["rt-multi-thread", "macros"] }
 tokyo = "1.0.0"

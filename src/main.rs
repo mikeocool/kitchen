@@ -1,12 +1,10 @@
+use bollard::Docker;
+use clap::{Parser, Subcommand};
+use kitchen::Kitchen;
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
-use bollard::Docker;
-
-struct Kitchen {
-    workspace_path: PathBuf,
-    name: String,
-}
+mod image;
+mod kitchen;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -19,9 +17,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Up {
-        workspace: Option<PathBuf>
-    }
+    Up { workspace: Option<PathBuf> },
+    Build { workspace: Option<PathBuf> },
 }
 
 #[tokio::main]
@@ -33,14 +30,13 @@ async fn main() {
     }
 
     match &cli.command {
-        Some(Commands::Up { workspace }) => {
-            up(&workspace).await
-        }
+        Some(Commands::Up { workspace }) => up(&workspace).await,
+        Some(Commands::Build { workspace }) => build(&workspace).await,
         None => {}
     }
 }
 
-async fn up(workspace: &Option<PathBuf>) {
+fn get_kitchen(workspace: &Option<PathBuf>) -> Kitchen {
     let workspace_path = match workspace {
         Some(ws) => std::fs::canonicalize(ws).unwrap_or_else(|_| ws.clone()),
         None => std::env::current_dir().expect("failed to get current directory"),
@@ -52,19 +48,31 @@ async fn up(workspace: &Option<PathBuf>) {
         .to_string_lossy()
         .into_owned();
 
-    let kitchen = Kitchen { workspace_path, name };
+    let kitchen = Kitchen {
+        workspace_path,
+        name,
+    };
 
-    let container_name = format!("{}-kitchen", kitchen.name);
+    return kitchen;
+}
 
-    let docker = Docker::connect_with_local_defaults()
-        .expect("failed to connect to Docker");
+async fn build(workspace: &Option<PathBuf>) {
+    let kitchen = get_kitchen(&workspace);
+    println!("Building {}...", kitchen.name);
+
+    image::build(&kitchen.name).await;
+}
+
+async fn up(workspace: &Option<PathBuf>) {
+    let kitchen = get_kitchen(&workspace);
+
+    let container_name = kitchen.container_name();
+
+    let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
 
     match docker.inspect_container(&container_name, None).await {
         Ok(info) => {
-            let running = info
-                .state
-                .and_then(|s| s.running)
-                .unwrap_or(false);
+            let running = info.state.and_then(|s| s.running).unwrap_or(false);
             if running {
                 println!("Container {container_name} is already running.");
             } else {
@@ -76,5 +84,9 @@ async fn up(workspace: &Option<PathBuf>) {
         }
     }
 
-    println!("Kitchen: {} at {}", kitchen.name, kitchen.workspace_path.display());
+    println!(
+        "Kitchen: {} at {}",
+        kitchen.name,
+        kitchen.workspace_path.display()
+    );
 }
