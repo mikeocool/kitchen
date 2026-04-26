@@ -14,7 +14,6 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Up {
-        #[arg(short, long)]
         workspace: Option<PathBuf>
     }
 }
