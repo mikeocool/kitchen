@@ -1,0 +1,2 @@
+KITCHEN_DOTFILES_REPO=https://github.com/mikeocool/dotfiles.git
+KITCHEN_DOTFILES_INSTALL_CMD=./install.sh
