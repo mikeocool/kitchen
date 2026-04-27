@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 
+use crate::config::KitchenToml;
+
 pub struct Kitchen {
     pub workspace_path: PathBuf,
     pub name: String,
+    pub config: Option<KitchenToml>,
 }
 
 impl Kitchen {
@@ -10,11 +13,21 @@ impl Kitchen {
         format!("{}-kitchen", self.name)
     }
 
+    pub fn container_workspace_path(&self) -> String {
+        format!("/workspaces/{}", self.name)
+    }
+
     pub fn workspace_mount(&self) -> String {
-        format!("{}:/workspace/{}", self.workspace_path.display(), self.name)
+        let host_path = self
+            .config
+            .as_ref()
+            .and_then(|c| c.container.as_ref())
+            .and_then(|c| c.workspace_mount_path.as_deref())
+            .unwrap_or_else(|| self.workspace_path.to_str().unwrap_or_default());
+        format!("{}:{}", host_path, self.container_workspace_path())
     }
 
     pub fn kitchen_workspace_env(&self) -> String {
-        format!("KITCHEN_WORKSPACE=/workspace/{}", self.name)
+        format!("KITCHEN_WORKSPACE={}", self.container_workspace_path())
     }
 }

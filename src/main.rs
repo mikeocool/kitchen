@@ -40,7 +40,7 @@ async fn main() {
     }
 }
 
-fn get_kitchen(workspace: &Option<PathBuf>) -> Kitchen {
+fn get_kitchen(workspace: &Option<PathBuf>) -> Result<Kitchen, Box<dyn std::error::Error>> {
     let workspace_path = match workspace {
         Some(ws) => std::fs::canonicalize(ws).unwrap_or_else(|_| ws.clone()),
         None => std::env::current_dir().expect("failed to get current directory"),
@@ -52,23 +52,30 @@ fn get_kitchen(workspace: &Option<PathBuf>) -> Kitchen {
         .to_string_lossy()
         .into_owned();
 
-    let kitchen = Kitchen {
+    let config = config::load(&workspace_path)?;
+
+    Ok(Kitchen {
         workspace_path,
         name,
-    };
-
-    return kitchen;
+        config,
+    })
 }
 
 async fn build(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace);
+    let kitchen = get_kitchen(&workspace).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
     println!("Building {}...", kitchen.name);
 
     image::build(&kitchen.container_name()).await;
 }
 
 async fn up(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace);
+    let kitchen = get_kitchen(&workspace).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
 
     let container_name = kitchen.container_name();
 
@@ -101,7 +108,10 @@ async fn up(workspace: &Option<PathBuf>) {
 }
 
 async fn down(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace);
+    let kitchen = get_kitchen(&workspace).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
     let container_name = kitchen.container_name();
     let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
     // TODO if running, run scripts to handle cleanup -- like disconnecting from tailnet (or just have signal handler?)

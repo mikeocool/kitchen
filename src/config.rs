@@ -3,15 +3,15 @@ use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
 pub struct KitchenToml {
-    name: Option<String>,
-    container: Option<Container>,
+    pub name: Option<String>,
+    pub container: Option<Container>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Container {
-    workspace_mount_path: Option<String>,
+    pub workspace_mount_path: Option<String>,
     // TODO support multiple networks
-    network: Option<String>,
+    pub network: Option<String>,
 }
 
 pub fn load(workspace: &PathBuf) -> Result<Option<KitchenToml>, Box<dyn std::error::Error>> {
