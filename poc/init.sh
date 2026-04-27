@@ -23,6 +23,22 @@ if [[ -n "${DOCKER_SOCK_GID:-}" ]]; then
     sudo groupmod -g "${DOCKER_SOCK_GID}" docker
 fi
 
+echo "Setting up Docker outside of Docker..."
+DOCKER_SOCK=/var/run/docker.sock
+if [ -S "$DOCKER_SOCK" ]; then
+    DOCKER_SOCK_GID=$(stat -c '%g' "$DOCKER_SOCK")
+    # Create a 'docker' group with the host's GID (if it doesn't exist)
+    if ! getent group "$DOCKER_SOCK_GID" > /dev/null 2>&1; then
+        sudo groupadd -g "$DOCKER_SOCK_GID" docker-host
+    fi
+    # add user to group
+    sudo usermod -aG "$DOCKER_SOCK_GID" "$(whoami)" 2>/dev/null || true
+else
+    echo "WARNING: Docker socket not found at $DOCKER_SOCK" >&2
+    echo "Did you mount it with -v /var/run/docker.sock:/var/run/docker.sock?" >&2
+fi
+
+
 # Start tailscaled
 echo "Starting tailscaled"
 sudo bash -c 'tailscaled --tun=userspace-networking --socks5-server=localhost:1055 >> /var/log/tailscaled.log 2>&1' &

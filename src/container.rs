@@ -22,16 +22,28 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
         hostname: Some(container_name.clone()),
         env: Some(vec![kitchen.kitchen_workspace_env()]),
         host_config: Some(HostConfig {
-            mounts: Some(vec![Mount {
-                typ: Some(MountTypeEnum::BIND),
-                source: Some(kitchen.workspace_host_path()),
-                target: Some(kitchen.container_workspace_path()),
-                bind_options: Some(MountBindOptions {
-                    create_mountpoint: Some(false),
+            mounts: Some(vec![
+                Mount {
+                    typ: Some(MountTypeEnum::BIND),
+                    source: Some(kitchen.workspace_host_path()),
+                    target: Some(kitchen.container_workspace_path()),
+                    bind_options: Some(MountBindOptions {
+                        create_mountpoint: Some(false),
+                        ..Default::default()
+                    }),
                     ..Default::default()
-                }),
-                ..Default::default()
-            }]),
+                },
+                Mount {
+                    typ: Some(MountTypeEnum::BIND),
+                    source: Some("/var/run/docker.sock".to_string()),
+                    target: Some("/var/run/docker.sock".to_string()),
+                    bind_options: Some(MountBindOptions {
+                        create_mountpoint: Some(false),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+            ]),
             ..Default::default()
         }),
         ..Default::default()

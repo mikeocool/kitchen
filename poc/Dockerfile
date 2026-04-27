@@ -26,7 +26,7 @@ RUN curl -fsSL https://tailscale.com/install.sh | sh
 RUN curl -fsSL https://get.docker.com | sh
 
 RUN useradd -m -s /bin/zsh k \
-    && usermod -aG sudo,docker k \
+    && usermod -aG sudo k \
     && echo "k ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/k
 
 

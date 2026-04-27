@@ -40,8 +40,6 @@ echo "Starting ${KITCHEN_NAME}-kitchen..."
 
 docker build -t "${KITCHEN_NAME}-kitchen" "${SCRIPT_DIR}"
 
-DOCKER_SOCK_GID="$(stat -c '%g' /var/run/docker.sock)"
-
 MOUNT_ARGS=()
 if [[ -n "${KITCHEN_MOUNTS:-}" ]]; then
     for mount in ${KITCHEN_MOUNTS}; do
@@ -63,7 +61,6 @@ docker run -d --name "${KITCHEN_NAME}-kitchen" \
     -v "${KITCHEN_WORKSPACE}:/workspaces/${KITCHEN_NAME}" \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e "KITCHEN_WORKSPACE=/workspaces/${KITCHEN_NAME}" \
-    -e "DOCKER_SOCK_GID=${DOCKER_SOCK_GID}" \
     "${MOUNT_ARGS[@]}" \
     "${NETWORK_ARGS[@]}" \
     "${KITCHEN_NAME}-kitchen"
