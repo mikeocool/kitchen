@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use kitchen::Kitchen;
 use std::path::PathBuf;
 
+mod config;
 mod container;
 mod image;
 mod kitchen;
@@ -103,7 +104,7 @@ async fn down(workspace: &Option<PathBuf>) {
     let kitchen = get_kitchen(&workspace);
     let container_name = kitchen.container_name();
     let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
-    // TODO if running, run scripts to handle cleanup -- like disconnecting from tailnet
+    // TODO if running, run scripts to handle cleanup -- like disconnecting from tailnet (or just have signal handler?)
     if let Err(e) = container::remove(&docker, &container_name).await {
         eprintln!("Error: {e}");
         std::process::exit(1);

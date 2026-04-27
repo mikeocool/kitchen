@@ -1,0 +1,3 @@
+[container]
+# make this support envvars
+workspace_mount_path = "/home/ubuntu/workspaces/kitchen/fixtures/testws/"
