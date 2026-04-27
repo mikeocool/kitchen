@@ -1,6 +1,6 @@
 use bollard::Docker;
 use bollard::errors::Error as BollardError;
-use bollard::models::{ContainerCreateBody, HostConfig};
+use bollard::models::{ContainerCreateBody, HostConfig, Mount, MountBindOptions, MountTypeEnum};
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
 };
@@ -22,7 +22,16 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
         hostname: Some(container_name.clone()),
         env: Some(vec![kitchen.kitchen_workspace_env()]),
         host_config: Some(HostConfig {
-            binds: Some(vec![kitchen.workspace_mount()]),
+            mounts: Some(vec![Mount {
+                typ: Some(MountTypeEnum::BIND),
+                source: Some(kitchen.workspace_host_path()),
+                target: Some(kitchen.container_workspace_path()),
+                bind_options: Some(MountBindOptions {
+                    create_mountpoint: Some(false),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }]),
             ..Default::default()
         }),
         ..Default::default()

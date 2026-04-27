@@ -17,14 +17,13 @@ impl Kitchen {
         format!("/workspaces/{}", self.name)
     }
 
-    pub fn workspace_mount(&self) -> String {
-        let host_path = self
-            .config
+    pub fn workspace_host_path(&self) -> String {
+        self.config
             .as_ref()
             .and_then(|c| c.container.as_ref())
             .and_then(|c| c.workspace_mount_path.as_deref())
-            .unwrap_or_else(|| self.workspace_path.to_str().unwrap_or_default());
-        format!("{}:{}", host_path, self.container_workspace_path())
+            .unwrap_or_else(|| self.workspace_path.to_str().unwrap_or_default())
+            .to_string()
     }
 
     pub fn kitchen_workspace_env(&self) -> String {
