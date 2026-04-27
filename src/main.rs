@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use kitchen::Kitchen;
 use std::path::PathBuf;
 
+mod container;
 mod image;
 mod kitchen;
 
@@ -85,6 +86,9 @@ async fn up(workspace: &Option<PathBuf>) {
     }
 
     image::build(&kitchen.container_name()).await;
+    container::run(&docker, &kitchen)
+        .await
+        .expect("failed to start containeo");
 
     println!(
         "Kitchen: {} at {}",

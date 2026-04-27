@@ -21,6 +21,7 @@ cargo run
 
 ## TODO
 
+- Implement run
 - Define toml format and ready from and merge:
     - <workspace>/.kitchen/config.toml
     - <workspace>/.kitchen/config.local.toml
