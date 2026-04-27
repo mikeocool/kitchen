@@ -66,16 +66,6 @@ async fn build(workspace: &Option<PathBuf>) {
     image::build(&kitchen.container_name()).await;
 }
 
-async fn down(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace);
-    let container_name = kitchen.container_name();
-    let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
-    if let Err(e) = container::remove(&docker, &container_name).await {
-        eprintln!("Error: {e}");
-        std::process::exit(1);
-    }
-}
-
 async fn up(workspace: &Option<PathBuf>) {
     let kitchen = get_kitchen(&workspace);
 
@@ -107,4 +97,14 @@ async fn up(workspace: &Option<PathBuf>) {
         kitchen.name,
         kitchen.workspace_path.display()
     );
+}
+
+async fn down(workspace: &Option<PathBuf>) {
+    let kitchen = get_kitchen(&workspace);
+    let container_name = kitchen.container_name();
+    let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
+    if let Err(e) = container::remove(&docker, &container_name).await {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
 }
