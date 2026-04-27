@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
 use bollard::Docker;
 use bollard::errors::Error as BollardError;
-use bollard::models::{ContainerCreateBody, HostConfig, Mount, MountBindOptions, MountTypeEnum};
+use bollard::models::{
+    ContainerCreateBody, EndpointSettings, HostConfig, Mount, MountBindOptions, MountTypeEnum,
+    NetworkCreateRequest, NetworkingConfig,
+};
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
 };
@@ -10,17 +15,52 @@ use crate::kitchen::Kitchen;
 
 const READY_SENTINEL: &str = "Kitchen is ready to cook";
 
+async fn ensure_network(docker: &Docker, network: &str) -> Result<(), BollardError> {
+    match docker.inspect_network(network, None).await {
+        Ok(_) => return Ok(()),
+        Err(BollardError::DockerResponseServerError {
+            status_code: 404, ..
+        }) => {}
+        Err(e) => return Err(e),
+    }
+    docker
+        .create_network(NetworkCreateRequest {
+            name: network.to_string(),
+            ..Default::default()
+        })
+        .await?;
+    Ok(())
+}
+
 pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::errors::Error> {
     let container_name = kitchen.container_name();
+
+    let network = kitchen
+        .config
+        .as_ref()
+        .and_then(|c| c.container.as_ref())
+        .and_then(|c| c.network.as_deref());
+
+    if let Some(network) = network {
+        ensure_network(docker, network).await?;
+    }
 
     let options = CreateContainerOptionsBuilder::default()
         .name(&container_name)
         .build();
 
+    let networking_config = network.map(|n| NetworkingConfig {
+        endpoints_config: Some(HashMap::from([(
+            n.to_string(),
+            EndpointSettings::default(),
+        )])),
+    });
+
     let body = ContainerCreateBody {
         image: Some(container_name.clone()),
         hostname: Some(container_name.clone()),
         env: Some(vec![kitchen.kitchen_workspace_env()]),
+        networking_config,
         host_config: Some(HostConfig {
             mounts: Some(vec![
                 Mount {

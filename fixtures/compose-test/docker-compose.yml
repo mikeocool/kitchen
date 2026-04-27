@@ -1,0 +1,9 @@
+services:
+  httpbin:
+    image: kennethreitz/httpbin
+    networks:
+      - compose-test_default
+
+networks:
+  compose-test_default:
+    external: true

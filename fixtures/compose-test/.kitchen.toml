@@ -1,0 +1,7 @@
+[features]
+docker_outside_of_docker = true
+
+[container]
+# make this support envvars
+workspace_mount_path = "/home/ubuntu/workspace/kitchen/fixtures/compose-test/"
+network = "compose-test_default"
