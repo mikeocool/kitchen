@@ -19,6 +19,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Up { workspace: Option<PathBuf> },
+    Down { workspace: Option<PathBuf> },
     Build { workspace: Option<PathBuf> },
 }
 
@@ -32,6 +33,7 @@ async fn main() {
 
     match &cli.command {
         Some(Commands::Up { workspace }) => up(&workspace).await,
+        Some(Commands::Down { workspace }) => down(&workspace).await,
         Some(Commands::Build { workspace }) => build(&workspace).await,
         None => {}
     }
@@ -62,6 +64,16 @@ async fn build(workspace: &Option<PathBuf>) {
     println!("Building {}...", kitchen.name);
 
     image::build(&kitchen.container_name()).await;
+}
+
+async fn down(workspace: &Option<PathBuf>) {
+    let kitchen = get_kitchen(&workspace);
+    let container_name = kitchen.container_name();
+    let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
+    if let Err(e) = container::remove(&docker, &container_name).await {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
 }
 
 async fn up(workspace: &Option<PathBuf>) {

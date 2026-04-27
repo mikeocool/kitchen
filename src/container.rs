@@ -1,6 +1,9 @@
 use bollard::Docker;
+use bollard::errors::Error as BollardError;
 use bollard::models::{ContainerCreateBody, HostConfig};
-use bollard::query_parameters::{CreateContainerOptionsBuilder, LogsOptionsBuilder};
+use bollard::query_parameters::{
+    CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
+};
 use futures_util::StreamExt;
 
 use crate::kitchen::Kitchen;
@@ -50,4 +53,19 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
     }
 
     Ok({})
+}
+
+pub async fn remove(docker: &Docker, container_name: &str) -> Result<(), String> {
+    let options = RemoveContainerOptionsBuilder::default().force(true).build();
+
+    match docker.remove_container(container_name, Some(options)).await {
+        Ok(_) => {
+            println!("Removed container {container_name}");
+            Ok(())
+        }
+        Err(BollardError::DockerResponseServerError {
+            status_code: 404, ..
+        }) => Err(format!("Container {container_name} does not exist")),
+        Err(e) => Err(e.to_string()),
+    }
 }
