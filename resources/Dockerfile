@@ -19,6 +19,12 @@ ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 # Install mise
 RUN curl https://mise.run | sh
 
+# Install pitchfork
+RUN curl -fsSL -o /tmp/pitchfork.tar.gz https://github.com/endevco/pitchfork/releases/download/v2.7.0/pitchfork-x86_64-unknown-linux-gnu.tar.gz \
+    && tar zxvf /tmp/pitchfork.tar.gz -C /tmp \
+    && mv /tmp/pitchfork /usr/local/bin/pitchfork
+
+
 # Install tailscale
 RUN curl -fsSL https://tailscale.com/install.sh | sh
 
