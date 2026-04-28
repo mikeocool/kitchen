@@ -1,3 +1,6 @@
+dotfiles_repo = "https://github.com/mikeocool/dotfiles.git"
+dotfiles_install_cmd = "./install.sh"
+
 [features]
 docker_outside_of_docker = true
 

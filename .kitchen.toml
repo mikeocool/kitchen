@@ -1,0 +1,2 @@
+dotfiles_repo = "https://github.com/mikeocool/dotfiles.git"
+dotfiles_install_cmd = "./install.sh"

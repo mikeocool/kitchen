@@ -7,6 +7,7 @@ mod config;
 mod container;
 mod image;
 mod kitchen;
+mod provision;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -22,6 +23,7 @@ enum Commands {
     Up { workspace: Option<PathBuf> },
     Down { workspace: Option<PathBuf> },
     Build { workspace: Option<PathBuf> },
+    ContainerProvision,
 }
 
 #[tokio::main]
@@ -36,6 +38,7 @@ async fn main() {
         Some(Commands::Up { workspace }) => up(&workspace).await,
         Some(Commands::Down { workspace }) => down(&workspace).await,
         Some(Commands::Build { workspace }) => build(&workspace).await,
+        Some(Commands::ContainerProvision) => container_provision().await,
         None => {}
     }
 }
@@ -117,6 +120,23 @@ async fn down(workspace: &Option<PathBuf>) {
     // TODO if running, run scripts to handle cleanup -- like disconnecting from tailnet (or just have signal handler?)
     if let Err(e) = container::remove(&docker, &container_name).await {
         eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
+}
+
+async fn container_provision() {
+    // TODO stronger sentinel that we're in a kitch container
+    let workspace_path = std::env::var("KITCHEN_WORKSPACE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| std::env::current_dir().expect("no workspace configured"));
+
+    let kitchen = get_kitchen(&Some(workspace_path)).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
+
+    if let Err(e) = provision::run(&kitchen).await {
+        eprint!("Error: {e}");
         std::process::exit(1);
     }
 }

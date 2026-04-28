@@ -2,23 +2,6 @@
 
 set -euo pipefail
 
-if [[ -f "${KITCHEN_WORKSPACE}/.kitchen/.env" ]]; then
-    source "${KITCHEN_WORKSPACE}/.kitchen/.env"
-fi
-
-if [[ -f "${KITCHEN_WORKSPACE}/.kitchenenv" ]]; then
-    source "${KITCHEN_WORKSPACE}/.kitchenenv"
-fi
-
-if [[ -f "${KITCHEN_WORKSPACE}/.kitchen/.env.local" ]]; then
-    source "${KITCHEN_WORKSPACE}/.kitchen/.env.local"
-fi
-
-if [[ -f "${KITCHEN_WORKSPACE}/.kitchenenv.local" ]]; then
-    source "${KITCHEN_WORKSPACE}/.kitchenenv.local"
-fi
-
-
 echo "Setting up Docker outside of Docker..."
 DOCKER_SOCK=/var/run/docker.sock
 if [ -S "$DOCKER_SOCK" ]; then
@@ -51,15 +34,7 @@ sudo tailscale up --ssh
 
 TAILSCALE_IP=$(tailscale ip --4)
 
-if [[ -n "${KITCHEN_DOTFILES_REPO:-}" ]]; then
-    echo "Cloning dotfiles from ${KITCHEN_DOTFILES_REPO}..."
-    git clone "${KITCHEN_DOTFILES_REPO}" "${HOME}/dotfiles"
-
-    if [[ -n "${KITCHEN_DOTFILES_INSTALL_CMD:-}" ]]; then
-        echo "Running dotfiles install command..."
-        cd "${HOME}/dotfiles" && "${KITCHEN_DOTFILES_INSTALL_CMD}"
-    fi
-fi
+/usr/local/bin/kitchen container-provision
 
 echo "Setting up mise"
 
