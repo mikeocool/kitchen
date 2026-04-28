@@ -4,6 +4,10 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug)]
 pub struct KitchenToml {
     pub name: Option<String>,
+
+    pub dotfiles_repo: Option<String>,
+    pub dotfiles_install_cmd: Option<String>,
+
     pub features: Option<Features>,
     pub container: Option<Container>,
 }
