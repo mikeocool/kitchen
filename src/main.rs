@@ -5,9 +5,9 @@ use std::path::PathBuf;
 
 mod config;
 mod container;
+mod extensions;
 mod image;
 mod kitchen;
-mod provision;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -134,12 +134,9 @@ async fn shell(workspace: &Option<PathBuf>) {
 
     let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
 
-    match container::shell(&docker, &kitchen).await {
-        Ok(code) => std::process::exit(code),
-        Err(e) => {
-            eprint!("Error: {e}");
-            std::process::exit(1);
-        }
+    if let Err(e) = container::shell(&docker, &kitchen).await {
+        eprint!("Error: {e}");
+        std::process::exit(1);
     }
 }
 
@@ -154,7 +151,7 @@ async fn container_provision() {
         std::process::exit(1);
     });
 
-    if let Err(e) = provision::run(&kitchen).await {
+    if let Err(e) = extensions::provision(&kitchen).await {
         eprint!("Error: {e}");
         std::process::exit(1);
     }

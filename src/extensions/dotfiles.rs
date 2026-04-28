@@ -5,7 +5,7 @@ use crate::kitchen::Kitchen;
 
 const SCRIPT: &str = include_str!("../../resources/provision/dotfiles.sh");
 
-pub fn provision(kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
+pub fn on_start(kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
     let config = match &kitchen.config {
         Some(c) => c,
         None => return Ok(()),
