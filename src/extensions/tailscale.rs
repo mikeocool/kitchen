@@ -4,6 +4,12 @@ use std::thread;
 
 use crate::kitchen::Kitchen;
 
+pub fn install(_kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
+    // get and run tailscale install script, if it's not already installed
+    // TODO put daemon in place
+    Ok(())
+}
+
 pub fn poststart(_kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
     let mut child = Command::new("sudo")
         .args(["tailscale", "up", "--ssh"])
