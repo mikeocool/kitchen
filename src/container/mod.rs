@@ -12,6 +12,8 @@ use bollard::query_parameters::{
 use futures_util::StreamExt;
 
 use crate::kitchen::Kitchen;
+mod shell;
+pub use shell::shell;
 
 const READY_SENTINEL: &str = "Kitchen is ready to cook";
 

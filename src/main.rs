@@ -23,6 +23,7 @@ enum Commands {
     Up { workspace: Option<PathBuf> },
     Down { workspace: Option<PathBuf> },
     Build { workspace: Option<PathBuf> },
+    Shell { workspace: Option<PathBuf> },
     ContainerProvision,
 }
 
@@ -38,6 +39,7 @@ async fn main() {
         Some(Commands::Up { workspace }) => up(&workspace).await,
         Some(Commands::Down { workspace }) => down(&workspace).await,
         Some(Commands::Build { workspace }) => build(&workspace).await,
+        Some(Commands::Shell { workspace }) => shell(&workspace).await,
         Some(Commands::ContainerProvision) => container_provision().await,
         None => {}
     }
@@ -121,6 +123,23 @@ async fn down(workspace: &Option<PathBuf>) {
     if let Err(e) = container::remove(&docker, &container_name).await {
         eprintln!("Error: {e}");
         std::process::exit(1);
+    }
+}
+
+async fn shell(workspace: &Option<PathBuf>) {
+    let kitchen = get_kitchen(workspace).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
+
+    let docker = Docker::connect_with_local_defaults().expect("failed to connect to Docker");
+
+    match container::shell(&docker, &kitchen).await {
+        Ok(code) => std::process::exit(code),
+        Err(e) => {
+            eprint!("Error: {e}");
+            std::process::exit(1);
+        }
     }
 }
 
