@@ -5,7 +5,7 @@ use bollard::errors::Error as BollardError;
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::models::{
     ContainerCreateBody, EndpointSettings, HostConfig, Mount, MountBindOptions, MountTypeEnum,
-    NetworkCreateRequest, NetworkingConfig,
+    NetworkCreateRequest, NetworkingConfig, VolumeCreateRequest,
 };
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
@@ -17,6 +17,23 @@ mod shell;
 pub use shell::shell;
 
 const READY_SENTINEL: &str = "Kitchen is ready to cook";
+
+async fn ensure_volume(docker: &Docker, name: &str) -> Result<(), BollardError> {
+    match docker.inspect_volume(name).await {
+        Ok(_) => return Ok(()),
+        Err(BollardError::DockerResponseServerError {
+            status_code: 404, ..
+        }) => {}
+        Err(e) => return Err(e),
+    }
+    docker
+        .create_volume(VolumeCreateRequest {
+            name: Some(name.to_string()),
+            ..Default::default()
+        })
+        .await?;
+    Ok(())
+}
 
 async fn ensure_network(docker: &Docker, network: &str) -> Result<(), BollardError> {
     match docker.inspect_network(network, None).await {
@@ -47,6 +64,9 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
     if let Some(network) = network {
         ensure_network(docker, network).await?;
     }
+
+    let tailscale_volume = format!("{container_name}-tailscale");
+    ensure_volume(docker, &tailscale_volume).await?;
 
     let options = CreateContainerOptionsBuilder::default()
         .name(&container_name)
@@ -84,6 +104,12 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
                         create_mountpoint: Some(false),
                         ..Default::default()
                     }),
+                    ..Default::default()
+                },
+                Mount {
+                    typ: Some(MountTypeEnum::VOLUME),
+                    source: Some(tailscale_volume),
+                    target: Some("/var/lib/tailscale".to_string()),
                     ..Default::default()
                 },
             ]),

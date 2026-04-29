@@ -8,8 +8,10 @@ An alternative to devcontainers built on mise and tailscale.
 
 Create dev kitchen
 
+Need to bootstrap a `cargo build`
+
 ```
-./poc/kitchen
+./target/debug/kitchen up
 ```
 
 SSH in
@@ -21,8 +23,8 @@ cargo run
 
 ## TODO
 
-- Dotfiles setting
-- Remove kitchenenv references from init script
+- save tailscale state
+- mise shims
 - Define toml format and ready from and merge:
     - <workspace>/.kitchen/config.toml
     - <workspace>/.kitchen/config.local.toml

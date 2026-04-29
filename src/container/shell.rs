@@ -133,6 +133,9 @@ pub async fn shell(docker: &Docker, kitchen: &Kitchen) -> Result<i32, Box<dyn st
     resize_task.abort();
 
     let _ = crossterm::terminal::disable_raw_mode();
+    // Move to a clean line so the host shell prompt appears without needing Enter.
+    let _ = std::io::Write::write_all(&mut std::io::stdout(), b"\r\n");
+    let _ = std::io::Write::flush(&mut std::io::stdout());
 
     let exit_code = docker
         .inspect_exec(&exec.id)

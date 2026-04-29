@@ -39,6 +39,9 @@ fi
 echo "Setting up mise"
 
 # TODO support other shells
+# Shims for non-interaative sessions
+echo 'eval "$(mise activate zsh --shims)"' >> ~/.zprofile
+# activate for interactive sessions
 echo 'eval "$(/usr/local/bin/mise activate zsh)"' >> ~/.zshrc
 
 if [[ -f "${KITCHEN_WORKSPACE}/.kitchen/mise.global.toml" ]]; then
