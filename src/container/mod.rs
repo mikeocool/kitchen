@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bollard::Docker;
 use bollard::errors::Error as BollardError;
+use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::models::{
     ContainerCreateBody, EndpointSettings, HostConfig, Mount, MountBindOptions, MountTypeEnum,
     NetworkCreateRequest, NetworkingConfig,
@@ -116,6 +117,42 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
     }
 
     Ok({})
+}
+
+pub async fn exec(
+    docker: &Docker,
+    kitchen: &Kitchen,
+    cmd: Vec<impl Into<String>>,
+) -> Result<i64, BollardError> {
+    let container_name = kitchen.container_name();
+    let cmd: Vec<String> = cmd.into_iter().map(Into::into).collect();
+
+    let exec = docker
+        .create_exec(
+            &container_name,
+            CreateExecOptions {
+                cmd: Some(cmd),
+                attach_stdout: Some(true),
+                attach_stderr: Some(true),
+                tty: Some(false),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    let start_result = docker.start_exec(&exec.id, None).await?;
+
+    if let StartExecResults::Attached { mut output, .. } = start_result {
+        while let Some(result) = output.next().await {
+            match result {
+                Ok(log) => print!("{log}"),
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    let inspect = docker.inspect_exec(&exec.id).await?;
+    Ok(inspect.exit_code.unwrap_or(0))
 }
 
 pub async fn remove(docker: &Docker, container_name: &str) -> Result<(), String> {

@@ -107,6 +107,17 @@ async fn up(workspace: &Option<PathBuf>) {
         .await
         .expect("failed to start containeo");
 
+    if let Err(e) = container::exec(
+        &docker,
+        &kitchen,
+        vec!["/usr/local/bin/kitchen", "container-poststart"],
+    )
+    .await
+    {
+        eprintln!("Error running poststart: {e}");
+        std::process::exit(1);
+    }
+
     println!(
         "Kitchen: {} at {}",
         kitchen.name,
