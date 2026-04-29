@@ -23,7 +23,10 @@ cargo run
 
 ## TODO
 
+- label containers, images, volumes
+    - generic command to list running kitchens
 - add local mount to preserve claude context
+- extenion to add ghostty term-info
 - Define toml format and ready from and merge:
     - <workspace>/.kitchen/config.toml
     - <workspace>/.kitchen/config.local.toml
