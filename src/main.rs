@@ -25,6 +25,7 @@ enum Commands {
     Build { workspace: Option<PathBuf> },
     Shell { workspace: Option<PathBuf> },
     ContainerProvision,
+    ContainerPoststart,
 }
 
 #[tokio::main]
@@ -41,6 +42,7 @@ async fn main() {
         Some(Commands::Build { workspace }) => build(&workspace).await,
         Some(Commands::Shell { workspace }) => shell(&workspace).await,
         Some(Commands::ContainerProvision) => container_provision().await,
+        Some(Commands::ContainerPoststart) => container_poststart().await,
         None => {}
     }
 }
@@ -151,7 +153,25 @@ async fn container_provision() {
         std::process::exit(1);
     });
 
-    if let Err(e) = extensions::provision(&kitchen).await {
+    // TODO also do install
+
+    if let Err(e) = extensions::onstart(&kitchen).await {
+        eprint!("Error: {e}");
+        std::process::exit(1);
+    }
+}
+
+async fn container_poststart() {
+    let workspace_path = std::env::var("KITCHEN_WORKSPACE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| std::env::current_dir().expect("no workspace configured"));
+
+    let kitchen = get_kitchen(&Some(workspace_path)).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    });
+
+    if let Err(e) = extensions::poststart(&kitchen).await {
         eprint!("Error: {e}");
         std::process::exit(1);
     }

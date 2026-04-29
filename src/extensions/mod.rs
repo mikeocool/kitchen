@@ -3,9 +3,9 @@ use crate::kitchen::Kitchen;
 mod dotfiles;
 mod tailscale;
 
-pub async fn on_start(kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn onstart(kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
     println!("Running kitchen start hooks...");
-    dotfiles::on_start(kitchen)?;
+    dotfiles::onstart(kitchen)?;
     // TODO mise, tailscale
     Ok(())
 }
