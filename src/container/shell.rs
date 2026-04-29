@@ -26,7 +26,11 @@ pub async fn shell(docker: &Docker, kitchen: &Kitchen) -> Result<i32, Box<dyn st
         .create_exec(
             &container_name,
             CreateExecOptions {
-                cmd: Some(vec!["sh", "-c", r#"exec "${SHELL:-sh}""#]),
+                cmd: Some(vec![
+                    "sh",
+                    "-c",
+                    "exec $(getent passwd $(whoami) | cut -d: -f7)",
+                ]),
                 attach_stdin: Some(true),
                 attach_stdout: Some(true),
                 attach_stderr: Some(true),
