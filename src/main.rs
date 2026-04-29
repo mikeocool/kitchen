@@ -75,7 +75,7 @@ async fn build(workspace: &Option<PathBuf>) {
     });
     println!("Building {}...", kitchen.name);
 
-    image::build(&kitchen.container_name()).await;
+    image::build(&kitchen).await;
 }
 
 async fn up(workspace: &Option<PathBuf>) {
@@ -102,7 +102,7 @@ async fn up(workspace: &Option<PathBuf>) {
         Err(_) => {}
     }
 
-    image::build(&kitchen.container_name()).await;
+    image::build(&kitchen).await;
     container::run(&docker, &kitchen)
         .await
         .expect("failed to start containeo");

@@ -19,12 +19,12 @@ fi
 
 
 # Start tailscaled
-echo "Starting tailscaled"
-sudo bash -c 'tailscaled --tun=userspace-networking --socks5-server=localhost:1055 >> /var/log/tailscaled.log 2>&1' &
+# echo "Starting tailscaled"
+# sudo bash -c 'tailscaled --tun=userspace-networking --socks5-server=localhost:1055 >> /var/log/tailscaled.log 2>&1' &
 
 # TODO better healthcheck for tailscaled
-echo "Waiting for tailscaled to start..."
-sleep 5
+# echo "Waiting for tailscaled to start..."
+# sleep 5
 
 # TODO maybe also support qrcode?
 # Piping to bash wont work here, since the process doesnt exit until auth is complete
@@ -58,5 +58,5 @@ echo "---"
 # echo "Connect via ssh: ssh k@${TAILSCALE_IP}"
 echo "Kitchen is ready to cook"
 
-
-sleep infinity
+echo "Starting pitchfork..."
+exec sudo pitchfork supervisor run --boot --container

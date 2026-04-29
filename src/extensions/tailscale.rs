@@ -2,7 +2,14 @@ use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use std::thread;
 
+use crate::image::ContextFile;
 use crate::kitchen::Kitchen;
+
+const PITCHFORK_TOML: &[u8] = include_bytes!("../../resources/tailscale/pitchfork.toml");
+
+pub fn image_context(_kitchen: &Kitchen) -> Vec<ContextFile> {
+    vec![ContextFile::new("tailscale/pitchfork.toml", PITCHFORK_TOML)]
+}
 
 pub fn install(_kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
     // get and run tailscale install script, if it's not already installed

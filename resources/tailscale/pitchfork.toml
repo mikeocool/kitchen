@@ -1,3 +1,5 @@
 [daemons.tailscaled]
 run = "tailscaled --tun=userspace-networking --socks5-server=localhost:1055"
 ready_cmd = "curl --unix-socket /run/tailscale/tailscaled.sock http://local-tailscaled.sock/"
+user = "root"
+boot_start = true
