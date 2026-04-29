@@ -1,13 +1,15 @@
 use bollard::Docker;
 use clap::{Parser, Subcommand};
-use kitchen::Kitchen;
 use std::path::PathBuf;
+use kitchen::KitchenConfig;
 
 mod config;
 mod container;
 mod extensions;
 mod image;
 mod kitchen;
+
+
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -47,29 +49,8 @@ async fn main() {
     }
 }
 
-fn get_kitchen(workspace: &Option<PathBuf>) -> Result<Kitchen, Box<dyn std::error::Error>> {
-    let workspace_path = match workspace {
-        Some(ws) => std::fs::canonicalize(ws).unwrap_or_else(|_| ws.clone()),
-        None => std::env::current_dir().expect("failed to get current directory"),
-    };
-
-    let name = workspace_path
-        .file_name()
-        .expect("workspace path has no final component")
-        .to_string_lossy()
-        .into_owned();
-
-    let config = config::load(&workspace_path)?;
-
-    Ok(Kitchen {
-        workspace_path,
-        name,
-        config,
-    })
-}
-
 async fn build(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace).unwrap_or_else(|e| {
+    let kitchen = KitchenConfig::from_workspace(&workspace).unwrap_or_else(|e| {
         eprintln!("Error: {e}");
         std::process::exit(1);
     });
@@ -79,7 +60,7 @@ async fn build(workspace: &Option<PathBuf>) {
 }
 
 async fn up(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace).unwrap_or_else(|e| {
+    let kitchen = KitchenConfig::from_workspace(&workspace).unwrap_or_else(|e| {
         eprintln!("Error: {e}");
         std::process::exit(1);
     });
@@ -121,12 +102,12 @@ async fn up(workspace: &Option<PathBuf>) {
     println!(
         "Kitchen: {} at {}",
         kitchen.name,
-        kitchen.workspace_path.display()
+        kitchen.local_workspace_path.display()
     );
 }
 
 async fn down(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(&workspace).unwrap_or_else(|e| {
+    let kitchen = KitchenConfig::from_workspace(&workspace).unwrap_or_else(|e| {
         eprintln!("Error: {e}");
         std::process::exit(1);
     });
@@ -140,7 +121,7 @@ async fn down(workspace: &Option<PathBuf>) {
 }
 
 async fn shell(workspace: &Option<PathBuf>) {
-    let kitchen = get_kitchen(workspace).unwrap_or_else(|e| {
+    let kitchen = KitchenConfig::from_workspace(workspace).unwrap_or_else(|e| {
         eprintln!("Error: {e}");
         std::process::exit(1);
     });
@@ -159,7 +140,7 @@ async fn container_provision() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| std::env::current_dir().expect("no workspace configured"));
 
-    let kitchen = get_kitchen(&Some(workspace_path)).unwrap_or_else(|e| {
+    let kitchen = KitchenConfig::from_workspace(&Some(workspace_path)).unwrap_or_else(|e| {
         eprintln!("Error: {e}");
         std::process::exit(1);
     });
@@ -177,7 +158,7 @@ async fn container_poststart() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| std::env::current_dir().expect("no workspace configured"));
 
-    let kitchen = get_kitchen(&Some(workspace_path)).unwrap_or_else(|e| {
+    let kitchen = KitchenConfig::from_workspace(&Some(workspace_path)).unwrap_or_else(|e| {
         eprintln!("Error: {e}");
         std::process::exit(1);
     });

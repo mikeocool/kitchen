@@ -12,7 +12,7 @@ use bollard::query_parameters::{
 };
 use futures_util::StreamExt;
 
-use crate::kitchen::Kitchen;
+use crate::kitchen::KitchenConfig;
 mod shell;
 pub use shell::shell;
 
@@ -52,14 +52,10 @@ async fn ensure_network(docker: &Docker, network: &str) -> Result<(), BollardErr
     Ok(())
 }
 
-pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::errors::Error> {
+pub async fn run(docker: &Docker, kitchen: &KitchenConfig) -> Result<(), bollard::errors::Error> {
     let container_name = kitchen.container_name();
 
-    let network = kitchen
-        .config
-        .as_ref()
-        .and_then(|c| c.container.as_ref())
-        .and_then(|c| c.network.as_deref());
+    let network = kitchen.container.network.as_ref();
 
     if let Some(network) = network {
         ensure_network(docker, network).await?;
@@ -88,8 +84,8 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
             mounts: Some(vec![
                 Mount {
                     typ: Some(MountTypeEnum::BIND),
-                    source: Some(kitchen.workspace_host_path()),
-                    target: Some(kitchen.container_workspace_path()),
+                    source: Some(kitchen.container.host_workspace_path.clone()),
+                    target: Some(kitchen.container_workspace_path.clone()),
                     bind_options: Some(MountBindOptions {
                         create_mountpoint: Some(false),
                         ..Default::default()
@@ -147,7 +143,7 @@ pub async fn run(docker: &Docker, kitchen: &Kitchen) -> Result<(), bollard::erro
 
 pub async fn exec(
     docker: &Docker,
-    kitchen: &Kitchen,
+    kitchen: &KitchenConfig,
     cmd: Vec<impl Into<String>>,
 ) -> Result<i64, BollardError> {
     let container_name = kitchen.container_name();

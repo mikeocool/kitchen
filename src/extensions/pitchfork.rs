@@ -1,10 +1,10 @@
-use crate::kitchen::Kitchen;
+use crate::kitchen::KitchenConfig;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 const SCRIPT: &str = include_str!("../../resources/pitchfork/onstart.sh");
 
-pub fn onstart(_kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
+pub fn onstart(_kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
     let mut child = Command::new("sudo")
         .args(["sh", "-s"])
         .stdin(Stdio::piped())

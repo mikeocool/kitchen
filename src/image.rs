@@ -6,7 +6,7 @@ use futures_util::stream::StreamExt;
 use tar;
 
 use crate::extensions::tailscale;
-use crate::kitchen::Kitchen;
+use crate::kitchen::KitchenConfig;
 
 const DOCKERFILE: &[u8] = include_bytes!("../resources/Dockerfile");
 const INIT_SH: &[u8] = include_bytes!("../resources/init.sh");
@@ -32,7 +32,7 @@ impl ContextFile {
     }
 }
 // TODO return error
-pub async fn build(kitchen: &Kitchen) {
+pub async fn build(kitchen: &KitchenConfig) {
     let tar_bytes = build_context_tar(kitchen);
     let body = bollard::body_full(bytes::Bytes::from(tar_bytes));
 
@@ -57,7 +57,7 @@ pub async fn build(kitchen: &Kitchen) {
     }
 }
 
-fn build_context_tar(kitchen: &Kitchen) -> Vec<u8> {
+fn build_context_tar(kitchen: &KitchenConfig) -> Vec<u8> {
     let self_path = std::env::current_exe().expect("failed to get current exe path");
     let self_bytes = std::fs::read(&self_path).expect("failed to read current exe");
 

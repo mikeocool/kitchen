@@ -1,10 +1,13 @@
-use crate::kitchen::Kitchen;
+use crate::kitchen::KitchenConfig;
 use bollard::Docker;
 use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-pub async fn shell(docker: &Docker, kitchen: &Kitchen) -> Result<i32, Box<dyn std::error::Error>> {
+pub async fn shell(
+    docker: &Docker,
+    kitchen: &KitchenConfig,
+) -> Result<i32, Box<dyn std::error::Error>> {
     let container_name = kitchen.container_name();
 
     // TODO abstract this

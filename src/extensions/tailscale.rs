@@ -3,21 +3,21 @@ use std::process::{Command, Stdio};
 use std::thread;
 
 use crate::image::ContextFile;
-use crate::kitchen::Kitchen;
+use crate::kitchen::KitchenConfig;
 
 const PITCHFORK_TOML: &[u8] = include_bytes!("../../resources/tailscale/pitchfork.toml");
 
-pub fn image_context(_kitchen: &Kitchen) -> Vec<ContextFile> {
+pub fn image_context(_kitchen: &KitchenConfig) -> Vec<ContextFile> {
     vec![ContextFile::new("tailscale/pitchfork.toml", PITCHFORK_TOML)]
 }
 
-pub fn install(_kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
+pub fn install(_kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
     // get and run tailscale install script, if it's not already installed
     // TODO put daemon in place
     Ok(())
 }
 
-pub fn poststart(_kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
+pub fn poststart(_kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
     let mut child = Command::new("sudo")
         .args(["tailscale", "up", "--ssh"])
         .stdout(Stdio::piped())

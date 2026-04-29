@@ -1,22 +1,17 @@
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-use crate::kitchen::Kitchen;
+use crate::kitchen::KitchenConfig;
 
 const SCRIPT: &str = include_str!("../../resources/provision/dotfiles.sh");
 
-pub fn onstart(kitchen: &Kitchen) -> Result<(), Box<dyn std::error::Error>> {
-    let config = match &kitchen.config {
-        Some(c) => c,
-        None => return Ok(()),
-    };
-
-    let repo = match &config.dotfiles_repo {
+pub fn onstart(kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let repo = match &kitchen.dotfiles_repo {
         Some(r) => r.as_str(),
         None => return Ok(()),
     };
 
-    let install_cmd = config.dotfiles_install_cmd.as_deref().unwrap_or("");
+    let install_cmd = kitchen.dotfiles_install_cmd.as_deref().unwrap_or("");
 
     let mut child = Command::new("sh")
         .args(["-s", "--", repo, install_cmd])
