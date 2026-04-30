@@ -11,6 +11,7 @@ pub struct KitchenToml {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct Container {
     pub workspace_mount_path: Option<String>,
     // TODO support multiple networks
@@ -19,6 +20,7 @@ pub struct Container {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct Mount {
     pub source: String,
     pub target: String,

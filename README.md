@@ -41,4 +41,11 @@ cargo run
     - <workspace>/.kitchen/config.toml
     - <workspace>/.kitchen/config.local.toml
     - <workspace>/.kitchen.toml(?)
-- Look at git worktreess -- ideally the worktrees all end up on the hostmount
+- Look at git worktreess -- ideally the worktrees all end up on the host mount
+- investigate tailscale split dns
+    - run dnsmasq
+    - setup tailscale split dns rule to route \*.<kitchen name>.ktchn.wtf to route to your kitchen dnsmasq
+    - probably wont be able to get valid SSL certs
+    - could also use a cloud dns provider, after tailscale up, it registers it's ip with the cloud dns provider
+        - no split DNS needed as long as you BYO domain
+        - could potenitally get ssl certs via DNS verification
