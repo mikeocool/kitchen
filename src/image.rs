@@ -5,7 +5,6 @@ use flate2;
 use futures_util::stream::StreamExt;
 use tar;
 
-use crate::extensions::tailscale;
 use crate::kitchen::KitchenConfig;
 
 const DOCKERFILE: &[u8] = include_bytes!("../resources/Dockerfile");
@@ -31,9 +30,8 @@ impl ContextFile {
         self
     }
 }
-// TODO return error
-pub async fn build(kitchen: &KitchenConfig) {
-    let tar_bytes = build_context_tar(kitchen);
+pub async fn build(kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let tar_bytes = build_context_tar(kitchen)?;
     let body = bollard::body_full(bytes::Bytes::from(tar_bytes));
 
     let opts = bollard::query_parameters::BuildImageOptionsBuilder::default()
@@ -52,12 +50,13 @@ pub async fn build(kitchen: &KitchenConfig) {
                     print!("{}", msg);
                 }
             }
-            Err(e) => eprintln!("Build error: {e}"),
+            Err(e) => return Err(e.into()),
         }
     }
+    Ok(())
 }
 
-fn build_context_tar(kitchen: &KitchenConfig) -> Vec<u8> {
+fn build_context_tar(kitchen: &KitchenConfig) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let self_path = std::env::current_exe().expect("failed to get current exe path");
     let self_bytes = std::fs::read(&self_path).expect("failed to read current exe");
 
@@ -69,7 +68,9 @@ fn build_context_tar(kitchen: &KitchenConfig) -> Vec<u8> {
         ContextFile::new("kitchen", self_bytes).with_mode(0o755),
     ];
 
-    files.extend(tailscale::image_context(kitchen));
+    for ext in &kitchen.extensions {
+        files.extend(ext.image_context(kitchen)?);
+    }
 
     let mut buf = Vec::new();
     let enc = flate2::write::GzEncoder::new(&mut buf, flate2::Compression::default());
@@ -85,5 +86,5 @@ fn build_context_tar(kitchen: &KitchenConfig) -> Vec<u8> {
     }
 
     ar.into_inner().unwrap().finish().unwrap();
-    buf
+    Ok(buf)
 }

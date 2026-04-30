@@ -23,10 +23,10 @@ cargo run
 
 ## TODO
 
-- fixup tailscale exension
-- docker outside of docker feature (figure out contributing mounts)
 - custom additional mounts
-- status command
+- eyre/anyhow
+- status command/centralizing inspecting running container
+- docker outside of docker feature (figure out contributing mounts)
 - extensions can contribute context to up message (tailscale shares IP)
 - label containers, images, volumes
     - generic command to list running kitchens

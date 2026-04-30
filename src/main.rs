@@ -53,7 +53,10 @@ async fn build(workspace: &Option<PathBuf>) {
     });
     println!("Building {}...", kitchen.name);
 
-    image::build(&kitchen).await;
+    if let Err(e) = image::build(&kitchen).await {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
 }
 
 async fn up(workspace: &Option<PathBuf>) {
@@ -80,7 +83,10 @@ async fn up(workspace: &Option<PathBuf>) {
         Err(_) => {}
     }
 
-    image::build(&kitchen).await;
+    if let Err(e) = image::build(&kitchen).await {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
     container::run(&docker, &kitchen)
         .await
         .expect("failed to start containeo");

@@ -36,7 +36,8 @@ type Builder = fn(&toml::Value) -> Result<Box<dyn Extension>, Box<dyn std::error
 
 const REGISTRY: &[(&str, Builder)] = &[
     ("dotfiles", |v| Ok(Box::new(dotfiles::Dotfiles::from_toml(v)?))),
-    ("pitchfork", |v| Ok(Box::new(pitchfork::Pitchfork::from_toml(v)?)))
+    ("pitchfork", |v| Ok(Box::new(pitchfork::Pitchfork::from_toml(v)?))),
+    ("tailscale", |v| Ok(Box::new(tailscale::Tailscale::from_toml(v)?)))
 ];
 
 pub fn build(toml: Option<&KitchenToml>) -> Result<Vec<Box<dyn Extension>>, Box<dyn std::error::Error>> {
@@ -73,7 +74,5 @@ pub async fn poststart(k: &KitchenConfig) -> Result<(), Box<dyn std::error::Erro
     println!("Running kitchen poststart hooks...");
 
     for ext in &k.extensions { ext.onstart(k).await?; }
-    tailscale::poststart(k)?;
-
     Ok(())
 }
