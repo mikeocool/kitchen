@@ -10,6 +10,9 @@ pub struct KitchenToml {
 
     pub features: Option<Features>,
     pub container: Option<Container>,
+
+    #[serde(flatten)]
+    pub extension_configs: toml::Table,
 }
 
 #[derive(Deserialize, Debug)]

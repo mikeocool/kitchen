@@ -1,21 +1,39 @@
-use crate::kitchen::KitchenConfig;
+use async_trait::async_trait;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+use crate::extensions::Extension;
+use crate::kitchen::KitchenConfig;
+
 const SCRIPT: &str = include_str!("../../resources/pitchfork/onstart.sh");
 
-pub fn onstart(_kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
-    let mut child = Command::new("sudo")
-        .args(["sh", "-s"])
-        .stdin(Stdio::piped())
-        .spawn()?;
+pub struct Pitchfork {}
 
-    child.stdin.as_mut().unwrap().write_all(SCRIPT.as_bytes())?;
+impl Pitchfork {
+    pub fn from_toml(_v: &toml::Value) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self {})
+    }
+}
 
-    let status = child.wait()?;
-    if !status.success() {
-        return Err("pitchfork onstart failed".into());
+#[async_trait]
+impl Extension for Pitchfork {
+    fn name(&self) -> &'static str {
+        "pitchfork"
     }
 
-    Ok(())
+    async fn onstart(&self, _k: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
+        let mut child = Command::new("sudo")
+            .args(["sh", "-s"])
+            .stdin(Stdio::piped())
+            .spawn()?;
+
+        child.stdin.as_mut().unwrap().write_all(SCRIPT.as_bytes())?;
+
+        let status = child.wait()?;
+        if !status.success() {
+            return Err("pitchfork onstart failed".into());
+        }
+
+        Ok(())
+    }
 }

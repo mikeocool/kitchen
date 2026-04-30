@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 use crate::config;
+use crate::extensions;
+use crate::extensions::Extension;
 
 pub struct Kitchen {
     pub workspace_path: PathBuf,
@@ -36,10 +38,7 @@ pub struct KitchenConfig {
     pub local_workspace_path: PathBuf,
     pub container_workspace_path: String,
     pub container: ContainerConfig,
-
-    // TOOD maybe move these out or primary config
-    pub dotfiles_repo: Option<String>,
-    pub dotfiles_install_cmd: Option<String>,
+    pub extensions: Vec<Box<dyn Extension>>,
 }
 
 impl KitchenConfig {
@@ -71,14 +70,14 @@ impl KitchenConfig {
             local_workspace_path.as_path(),
         );
 
+        let extensions = extensions::build(config_toml)?;
+
         Ok(KitchenConfig {
             name,
             local_workspace_path,
             container_workspace_path,
             container,
-
-            dotfiles_repo: config_toml.and_then(|c| c.dotfiles_repo.clone()),
-            dotfiles_install_cmd: config_toml.and_then(|c| c.dotfiles_install_cmd.clone()),
+            extensions,
         })
     }
 
