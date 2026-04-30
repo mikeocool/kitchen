@@ -6,5 +6,5 @@ install_cmd = "./install.sh"
 # make this support envvars
 workspace_mount_path = "/home/ubuntu/workspace/kitchen/fixtures/test-basic/"
 additional_mounts = [
-    {source = "/home/ubuntu/workspace/kitchen/poc/", target = "/poc"}
+    {source = "${hostWorkspacePath}/../../poc/", target = "/poc"}
 ]

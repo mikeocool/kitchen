@@ -17,3 +17,4 @@ tokio = { version = "1.52.1", features = ["rt-multi-thread", "macros", "io-std",
 tokyo = "1.0.0"
 use = "0.0.1-pre.0"
 async-trait = "0.1.89"
+subst = "0.3.8"

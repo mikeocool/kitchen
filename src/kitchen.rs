@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
-use bollard::models::{Mount, MountTypeEnum, MountBindOptions};
+use bollard::models::{Mount, MountBindOptions, MountTypeEnum};
 
 use crate::config;
 use crate::extensions;
@@ -41,7 +42,7 @@ impl KitchenConfig {
         let container = ContainerConfig::from_config(
             config_toml.and_then(|c| c.container.as_ref()),
             local_workspace_path.as_path(),
-        );
+        )?;
 
         let extensions = extensions::build(config_toml)?;
 
@@ -73,7 +74,7 @@ impl ContainerConfig {
     pub fn from_config(
         config_toml: Option<&config::Container>,
         local_workspace_path: &std::path::Path,
-    ) -> Self {
+    ) -> Result<ContainerConfig, Box<dyn std::error::Error>> {
         // TODO this wrong is we're running in the container
         let host_workspace_path = config_toml
             .and_then(|c| c.workspace_mount_path.as_deref())
@@ -81,15 +82,20 @@ impl ContainerConfig {
             .to_string();
 
         let additional_mounts_toml = config_toml
-            .and_then(|c| c.additional_mounts.as_deref() )
+            .and_then(|c| c.additional_mounts.as_deref())
             .unwrap_or_default();
+
+        let context = HashMap::from([("hostWorkspacePath", &host_workspace_path)]);
 
         let mut mounts = Vec::new();
         for mount_toml in additional_mounts_toml {
+            let source = subst::substitute(mount_toml.source.as_str(), &context)?;
+            let target = subst::substitute(mount_toml.target.as_str(), &context)?;
+
             mounts.push(Mount {
                 typ: Some(MountTypeEnum::BIND),
-                source: Some(mount_toml.source.clone()),
-                target: Some(mount_toml.target.clone()),
+                source: Some(source),
+                target: Some(target),
                 bind_options: Some(MountBindOptions {
                     create_mountpoint: Some(false),
                     ..Default::default()
@@ -98,10 +104,123 @@ impl ContainerConfig {
             });
         }
 
-        Self {
+        Ok(Self {
             host_workspace_path,
             additional_mounts: mounts,
             network: config_toml.and_then(|c| c.network.clone()),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bollard::models::MountTypeEnum;
+    use std::path::Path;
+
+    fn container_cfg(
+        workspace_mount_path: Option<&str>,
+        mounts: Option<Vec<config::Mount>>,
+    ) -> config::Container {
+        config::Container {
+            workspace_mount_path: workspace_mount_path.map(str::to_string),
+            network: None,
+            additional_mounts: mounts,
         }
+    }
+
+    #[test]
+    fn test_host_workspace_path_variable_substituted_in_source() {
+        let cfg = container_cfg(
+            Some("/host/workspace"),
+            Some(vec![config::Mount {
+                source: "${hostWorkspacePath}/../.aws/config".to_string(),
+                target: "/home/k/.aws/config".to_string(),
+            }]),
+        );
+        let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
+
+        assert_eq!(result.additional_mounts.len(), 1);
+        assert_eq!(
+            result.additional_mounts[0].source.as_deref(),
+            Some("/host/workspace/../.aws/config")
+        );
+        assert_eq!(
+            result.additional_mounts[0].target.as_deref(),
+            Some("/home/k/.aws/config")
+        );
+    }
+
+    #[test]
+    fn test_substitution_falls_back_to_local_workspace_path() {
+        let cfg = container_cfg(
+            None,
+            Some(vec![config::Mount {
+                source: "${hostWorkspacePath}/../.aws/config".to_string(),
+                target: "/home/k/.aws/config".to_string(),
+            }]),
+        );
+        let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
+
+        assert_eq!(
+            result.additional_mounts[0].source.as_deref(),
+            Some("/local/ws/../.aws/config")
+        );
+    }
+
+    #[test]
+    fn test_mount_without_variables_passes_through_unchanged() {
+        let cfg = container_cfg(
+            None,
+            Some(vec![config::Mount {
+                source: "/absolute/source".to_string(),
+                target: "/absolute/target".to_string(),
+            }]),
+        );
+        let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
+
+        assert_eq!(
+            result.additional_mounts[0].source.as_deref(),
+            Some("/absolute/source")
+        );
+        assert_eq!(
+            result.additional_mounts[0].target.as_deref(),
+            Some("/absolute/target")
+        );
+    }
+
+    #[test]
+    fn test_no_additional_mounts_produces_empty_vec() {
+        let cfg = container_cfg(None, None);
+        let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
+        assert!(result.additional_mounts.is_empty());
+    }
+
+    #[test]
+    fn test_no_config_produces_empty_mounts() {
+        let result = ContainerConfig::from_config(None, Path::new("/local/ws")).unwrap();
+        assert!(result.additional_mounts.is_empty());
+    }
+
+    #[test]
+    fn test_mounts_are_bind_type_with_no_create_mountpoint() {
+        let cfg = container_cfg(
+            None,
+            Some(vec![config::Mount {
+                source: "/src".to_string(),
+                target: "/tgt".to_string(),
+            }]),
+        );
+        let result = ContainerConfig::from_config(Some(&cfg), Path::new("/ws")).unwrap();
+
+        let mount = &result.additional_mounts[0];
+        assert_eq!(mount.typ, Some(MountTypeEnum::BIND));
+        assert_eq!(
+            mount
+                .bind_options
+                .as_ref()
+                .and_then(|o| o.create_mountpoint),
+            Some(false)
+        );
     }
 }
