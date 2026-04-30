@@ -4,11 +4,6 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug)]
 pub struct KitchenToml {
     pub name: Option<String>,
-
-    pub dotfiles_repo: Option<String>,
-    pub dotfiles_install_cmd: Option<String>,
-
-    pub features: Option<Features>,
     pub container: Option<Container>,
 
     #[serde(flatten)]
@@ -41,11 +36,6 @@ pub enum MountType {
     Image,
     Npipe,
     Cluster,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Features {
-    pub docker_outside_of_docker: Option<bool>,
 }
 
 pub fn load(workspace: &PathBuf) -> Result<Option<KitchenToml>, Box<dyn std::error::Error>> {

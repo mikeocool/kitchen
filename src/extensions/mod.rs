@@ -73,6 +73,6 @@ pub async fn onstart(k: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>
 pub async fn poststart(k: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
     println!("Running kitchen poststart hooks...");
 
-    for ext in &k.extensions { ext.onstart(k).await?; }
+    for ext in &k.extensions { ext.poststart(k).await?; }
     Ok(())
 }
