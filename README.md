@@ -23,11 +23,13 @@ cargo run
 
 ## TODO
 
-- custom additional mounts
 - eyre/anyhow
 - status command/centralizing inspecting running container
-- docker outside of docker feature (figure out contributing mounts)
+- mise extension
+- docker outside of docker extension (figure out contributing mounts)
 - extensions can contribute context to up message (tailscale shares IP)
+- installing system packages
+- install hook for extensions + contributing to docker image
 - label containers, images, volumes
     - generic command to list running kitchens
 - down command should remove tailscale machine

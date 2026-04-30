@@ -22,8 +22,8 @@ pub struct Container {
 pub struct Mount {
     pub source: String,
     pub target: String,
-    #[serde(rename = "type", default = "MountType::default")]
-    pub mount_type: MountType,
+    // #[serde(rename = "type", default = "MountType::default")]
+    // pub mount_type: MountType,
 }
 
 #[derive(Deserialize, Debug, Default)]

@@ -75,40 +75,44 @@ pub async fn run(docker: &Docker, kitchen: &KitchenConfig) -> Result<(), bollard
         )])),
     });
 
+    let mut mounts = vec![
+        Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some(kitchen.container.host_workspace_path.clone()),
+            target: Some(kitchen.container_workspace_path.clone()),
+            bind_options: Some(MountBindOptions {
+                create_mountpoint: Some(false),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/var/run/docker.sock".to_string()),
+            target: Some("/var/run/docker.sock".to_string()),
+            bind_options: Some(MountBindOptions {
+                create_mountpoint: Some(false),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        Mount {
+            typ: Some(MountTypeEnum::VOLUME),
+            source: Some(tailscale_volume),
+            target: Some("/var/lib/tailscale".to_string()),
+            ..Default::default()
+        },
+    ];
+
+    mounts.extend(kitchen.container.additional_mounts.clone());
+
     let body = ContainerCreateBody {
         image: Some(container_name.clone()),
         hostname: Some(container_name.clone()),
         env: Some(vec![kitchen.kitchen_workspace_env()]),
         networking_config,
         host_config: Some(HostConfig {
-            mounts: Some(vec![
-                Mount {
-                    typ: Some(MountTypeEnum::BIND),
-                    source: Some(kitchen.container.host_workspace_path.clone()),
-                    target: Some(kitchen.container_workspace_path.clone()),
-                    bind_options: Some(MountBindOptions {
-                        create_mountpoint: Some(false),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                },
-                Mount {
-                    typ: Some(MountTypeEnum::BIND),
-                    source: Some("/var/run/docker.sock".to_string()),
-                    target: Some("/var/run/docker.sock".to_string()),
-                    bind_options: Some(MountBindOptions {
-                        create_mountpoint: Some(false),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                },
-                Mount {
-                    typ: Some(MountTypeEnum::VOLUME),
-                    source: Some(tailscale_volume),
-                    target: Some("/var/lib/tailscale".to_string()),
-                    ..Default::default()
-                },
-            ]),
+            mounts: Some(mounts),
             ..Default::default()
         }),
         ..Default::default()

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use bollard::models::{Mount, MountTypeEnum, MountBindOptions};
+
 use crate::config;
 use crate::extensions;
 use crate::extensions::Extension;
@@ -63,6 +65,7 @@ impl KitchenConfig {
 
 pub struct ContainerConfig {
     pub host_workspace_path: String,
+    pub additional_mounts: Vec<Mount>,
     pub network: Option<String>,
 }
 
@@ -77,8 +80,27 @@ impl ContainerConfig {
             .unwrap_or_else(|| local_workspace_path.to_str().unwrap_or_default())
             .to_string();
 
+        let additional_mounts_toml = config_toml
+            .and_then(|c| c.additional_mounts.as_deref() )
+            .unwrap_or_default();
+
+        let mut mounts = Vec::new();
+        for mount_toml in additional_mounts_toml {
+            mounts.push(Mount {
+                typ: Some(MountTypeEnum::BIND),
+                source: Some(mount_toml.source.clone()),
+                target: Some(mount_toml.target.clone()),
+                bind_options: Some(MountBindOptions {
+                    create_mountpoint: Some(false),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            });
+        }
+
         Self {
             host_workspace_path,
+            additional_mounts: mounts,
             network: config_toml.and_then(|c| c.network.clone()),
         }
     }
