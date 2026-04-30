@@ -14,8 +14,6 @@ mod kitchen;
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    name: Option<String>,
-
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -34,10 +32,6 @@ enum Commands {
 async fn main() {
     let cli = Cli::parse();
 
-    if let Some(name) = cli.name.as_deref() {
-        println!("Value for name: {name}")
-    }
-
     match &cli.command {
         Some(Commands::Up { workspace }) => up(&workspace).await,
         Some(Commands::Down { workspace }) => down(&workspace).await,
@@ -45,7 +39,10 @@ async fn main() {
         Some(Commands::Shell { workspace }) => shell(&workspace).await,
         Some(Commands::ContainerProvision) => container_provision().await,
         Some(Commands::ContainerPoststart) => container_poststart().await,
-        None => {}
+        None => {
+            eprintln!("Error: no subcommand provided. Use --help for usage.");
+            std::process::exit(1);
+        }
     }
 }
 
