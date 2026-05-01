@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use bollard::models::{Mount, MountBindOptions, MountTypeEnum};
 
@@ -65,7 +65,7 @@ impl KitchenConfig {
 }
 
 pub struct ContainerConfig {
-    pub host_workspace_path: String,
+    pub host_workspace_path: PathBuf,
     pub additional_mounts: Vec<Mount>,
     pub network: Option<String>,
 }
@@ -78,24 +78,19 @@ impl ContainerConfig {
         // TODO this wrong is we're running in the container
         let host_workspace_path = config_toml
             .and_then(|c| c.workspace_mount_path.as_deref())
-            .unwrap_or_else(|| local_workspace_path.to_str().unwrap_or_default())
-            .to_string();
+            .unwrap_or(local_workspace_path)
+            .to_path_buf();
 
         let additional_mounts_toml = config_toml
             .and_then(|c| c.additional_mounts.as_deref())
             .unwrap_or_default();
 
-        let context = HashMap::from([("hostWorkspacePath", &host_workspace_path)]);
-
         let mut mounts = Vec::new();
         for mount_toml in additional_mounts_toml {
-            let source = subst::substitute(mount_toml.source.as_str(), &context)?;
-            let target = subst::substitute(mount_toml.target.as_str(), &context)?;
-
             mounts.push(Mount {
                 typ: Some(MountTypeEnum::BIND),
-                source: Some(source),
-                target: Some(target),
+                source: Some(Self::mount_path(&mount_toml.source, &host_workspace_path)),
+                target: Some(Self::mount_path(&mount_toml.target, &host_workspace_path)),
                 bind_options: Some(MountBindOptions {
                     create_mountpoint: Some(false),
                     ..Default::default()
@@ -110,6 +105,17 @@ impl ContainerConfig {
             network: config_toml.and_then(|c| c.network.clone()),
         })
     }
+
+    fn mount_path(path: &Path, host_workspace_path: &Path) -> String {
+        // TODO consider variable substituion
+        let resolved_path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            host_workspace_path.join(path)
+        };
+
+        resolved_path.to_string_lossy().into_owned()
+    }
 }
 
 #[cfg(test)]
@@ -123,7 +129,7 @@ mod tests {
         mounts: Option<Vec<config::Mount>>,
     ) -> config::Container {
         config::Container {
-            workspace_mount_path: workspace_mount_path.map(str::to_string),
+            workspace_mount_path: workspace_mount_path.map(PathBuf::from),
             network: None,
             additional_mounts: mounts,
         }
@@ -134,8 +140,8 @@ mod tests {
         let cfg = container_cfg(
             Some("/host/workspace"),
             Some(vec![config::Mount {
-                source: "${hostWorkspacePath}/../.aws/config".to_string(),
-                target: "/home/k/.aws/config".to_string(),
+                source: PathBuf::from("../.aws/config"),
+                target: PathBuf::from("/home/k/.aws/config"),
             }]),
         );
         let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
@@ -156,8 +162,8 @@ mod tests {
         let cfg = container_cfg(
             None,
             Some(vec![config::Mount {
-                source: "${hostWorkspacePath}/../.aws/config".to_string(),
-                target: "/home/k/.aws/config".to_string(),
+                source: PathBuf::from("../.aws/config"),
+                target: PathBuf::from("/home/k/.aws/config"),
             }]),
         );
         let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
@@ -173,8 +179,8 @@ mod tests {
         let cfg = container_cfg(
             None,
             Some(vec![config::Mount {
-                source: "/absolute/source".to_string(),
-                target: "/absolute/target".to_string(),
+                source: PathBuf::from("/absolute/source"),
+                target: PathBuf::from("/absolute/target"),
             }]),
         );
         let result = ContainerConfig::from_config(Some(&cfg), Path::new("/local/ws")).unwrap();
@@ -207,8 +213,8 @@ mod tests {
         let cfg = container_cfg(
             None,
             Some(vec![config::Mount {
-                source: "/src".to_string(),
-                target: "/tgt".to_string(),
+                source: PathBuf::from("/src"),
+                target: PathBuf::from("/tgt"),
             }]),
         );
         let result = ContainerConfig::from_config(Some(&cfg), Path::new("/ws")).unwrap();

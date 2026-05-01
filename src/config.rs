@@ -13,7 +13,7 @@ pub struct KitchenToml {
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Container {
-    pub workspace_mount_path: Option<String>,
+    pub workspace_mount_path: Option<PathBuf>,
     // TODO support multiple networks
     pub network: Option<String>,
     pub additional_mounts: Option<Vec<Mount>>,
@@ -22,8 +22,8 @@ pub struct Container {
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Mount {
-    pub source: String,
-    pub target: String,
+    pub source: PathBuf,
+    pub target: PathBuf,
     // #[serde(rename = "type", default = "MountType::default")]
     // pub mount_type: MountType,
 }

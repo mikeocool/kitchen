@@ -49,3 +49,11 @@ cargo run
     - could also use a cloud dns provider, after tailscale up, it registers it's ip with the cloud dns provider
         - no split DNS needed as long as you BYO domain
         - could potenitally get ssl certs via DNS verification
+
+- implement `kitchen ssh` and `kitchen shell`
+    - possible to dynamically create a socket or network connection to send messages back to the kitchen client
+    - ssh -R /tmp/my.sock:localhost:9000 user@remote - generate random socket, set env var on connection
+    - allows for xdg-open to use $BROWSER and potentially git credential helper
+    - kitchen ssh maybe works remotely using local tailscale API to find ktichens
+- Option to clone a repo on to a volume instead of mounting from host
+- Look at code tunnels and/or openvscode-server for editting via vscode.dev or running
