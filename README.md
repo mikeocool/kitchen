@@ -24,7 +24,6 @@ cargo run
 ## TODO
 
 - eyre/anyhow
-- support relative mount paths?
 - status command/centralizing inspecting running container
 - mise extension
 - docker outside of docker extension (figure out contributing mounts)
