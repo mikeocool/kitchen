@@ -136,7 +136,7 @@ mod tests {
     }
 
     #[test]
-    fn test_host_workspace_path_variable_substituted_in_source() {
+    fn test_relative_source_joined_with_workspace_mount_path() {
         let cfg = container_cfg(
             Some("/host/workspace"),
             Some(vec![config::Mount {
@@ -158,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    fn test_substitution_falls_back_to_local_workspace_path() {
+    fn test_host_path_falls_back_to_local_workspace_path() {
         let cfg = container_cfg(
             None,
             Some(vec![config::Mount {
@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mount_without_variables_passes_through_unchanged() {
+    fn test_mount_with_absolute_path_passes_through_unchanged() {
         let cfg = container_cfg(
             None,
             Some(vec![config::Mount {
