@@ -20,7 +20,7 @@ pub trait Extension: Send + Sync {
     }
     // TODO container_config -- add container config that gets merged into existing config
 
-    fn install(&self, _k: &KitchenConfig) -> Result<()> {
+    async fn install(&self, _k: &KitchenConfig) -> Result<()> {
         Ok(())
     }
 
@@ -70,6 +70,11 @@ pub fn build(toml: Option<&KitchenToml>) -> Result<Vec<Box<dyn Extension>>> {
 }
 
 pub async fn install(k: &KitchenConfig) -> Result<()> {
+    println!("Running kitchen install hooks...");
+
+    for ext in &k.extensions {
+        ext.install(k).await?;
+    }
     Ok(())
 }
 

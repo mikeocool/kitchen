@@ -32,7 +32,7 @@ impl Extension for Tailscale {
         )])
     }
 
-    fn install(&self, _k: &KitchenConfig) -> Result<()> {
+    async fn install(&self, _k: &KitchenConfig) -> Result<()> {
         // get and run tailscale install script, if it's not already installed
         // TODO put daemon in place
         Ok(())
