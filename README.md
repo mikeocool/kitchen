@@ -26,11 +26,13 @@ cargo run
 - eyre/anyhow
 - status command/centralizing inspecting running container
 - mise extension
+- extensions install hook + contributing to docker image
 - docker outside of docker extension (figure out contributing mounts)
+    - get the DOCKER SOCK from env, or let it be configurable
 - extensions can contribute context to up message (tailscale shares IP)
 - installing system packages
-- install hook for extensions + contributing to docker image
 - when tailsacle ssh needs re-auth, zed ssh connection just hangs
+- look at integrating with mac containers
 - label containers, images, volumes
     - generic command to list running kitchens
 - down command should remove tailscale machine

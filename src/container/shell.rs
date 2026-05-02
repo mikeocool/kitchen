@@ -1,13 +1,12 @@
-use crate::kitchen::KitchenConfig;
 use bollard::Docker;
 use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
+use eyre::{Result, eyre};
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-pub async fn shell(
-    docker: &Docker,
-    kitchen: &KitchenConfig,
-) -> Result<i32, Box<dyn std::error::Error>> {
+use crate::kitchen::KitchenConfig;
+
+pub async fn shell(docker: &Docker, kitchen: &KitchenConfig) -> Result<i32> {
     let container_name = kitchen.container_name();
 
     // TODO abstract this
@@ -20,7 +19,7 @@ pub async fn shell(
         .unwrap_or(false);
 
     if !running {
-        return Err("Container {container_name} is not running".into());
+        return Err(eyre!("Container {container_name} is not running"));
     }
 
     // Create an exec instance with a TTY and all three streams attached.
