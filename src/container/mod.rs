@@ -12,6 +12,8 @@ use bollard::query_parameters::{
 };
 use futures_util::StreamExt;
 
+use eyre::Result;
+
 use crate::kitchen::KitchenConfig;
 mod shell;
 pub use shell::shell;
@@ -187,7 +189,7 @@ pub async fn exec(
     Ok(inspect.exit_code.unwrap_or(0))
 }
 
-pub async fn remove(docker: &Docker, container_name: &str) -> Result<(), String> {
+pub async fn remove(docker: &Docker, container_name: &str) -> Result<()> {
     let options = RemoveContainerOptionsBuilder::default().force(true).build();
 
     match docker.remove_container(container_name, Some(options)).await {
@@ -197,7 +199,7 @@ pub async fn remove(docker: &Docker, container_name: &str) -> Result<(), String>
         }
         Err(BollardError::DockerResponseServerError {
             status_code: 404, ..
-        }) => Err(format!("Container {container_name} does not exist")),
-        Err(e) => Err(e.to_string()),
+        }) => Err(eyre::eyre!("Container {container_name} does not exist")),
+        Err(e) => Err(e.into()),
     }
 }

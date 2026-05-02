@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use bollard::models::{Mount, MountBindOptions, MountTypeEnum};
+use eyre::Result;
 
 use crate::config;
 use crate::extensions;
@@ -18,7 +19,7 @@ pub struct KitchenConfig {
 impl KitchenConfig {
     pub fn from_workspace(
         workspace: &Option<PathBuf>,
-    ) -> Result<KitchenConfig, Box<dyn std::error::Error>> {
+    ) -> Result<KitchenConfig> {
         let local_workspace_path = match workspace {
             Some(ws) => std::fs::canonicalize(ws).unwrap_or_else(|_| ws.clone()),
             None => std::env::current_dir().expect("failed to get current directory"),
@@ -74,7 +75,7 @@ impl ContainerConfig {
     pub fn from_config(
         config_toml: Option<&config::Container>,
         local_workspace_path: &std::path::Path,
-    ) -> Result<ContainerConfig, Box<dyn std::error::Error>> {
+    ) -> Result<ContainerConfig> {
         // TODO this wrong is we're running in the container
         let host_workspace_path = config_toml
             .and_then(|c| c.workspace_mount_path.as_deref())

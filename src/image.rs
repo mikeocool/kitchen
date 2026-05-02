@@ -1,6 +1,7 @@
 use bollard::Docker;
 
 use bytes;
+use eyre::Result;
 use flate2;
 use futures_util::stream::StreamExt;
 use tar;
@@ -30,7 +31,7 @@ impl ContextFile {
         self
     }
 }
-pub async fn build(kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn build(kitchen: &KitchenConfig) -> Result<()> {
     let tar_bytes = build_context_tar(kitchen)?;
     let body = bollard::body_full(bytes::Bytes::from(tar_bytes));
 
@@ -56,7 +57,7 @@ pub async fn build(kitchen: &KitchenConfig) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
-fn build_context_tar(kitchen: &KitchenConfig) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+fn build_context_tar(kitchen: &KitchenConfig) -> Result<Vec<u8>> {
     let self_path = std::env::current_exe().expect("failed to get current exe path");
     let self_bytes = std::fs::read(&self_path).expect("failed to read current exe");
 

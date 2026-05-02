@@ -1,3 +1,4 @@
+use eyre::Result;
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -40,7 +41,7 @@ pub enum MountType {
     Cluster,
 }
 
-pub fn load(workspace: &PathBuf) -> Result<Option<KitchenToml>, Box<dyn std::error::Error>> {
+pub fn load(workspace: &PathBuf) -> Result<Option<KitchenToml>> {
     let path = workspace.join(".kitchen.toml");
     if !path.exists() {
         return Ok(None);

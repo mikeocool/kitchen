@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use eyre::{Result, eyre};
 use std::io::Write;
 use std::process::{Command, Stdio};
 
@@ -10,7 +11,7 @@ const SCRIPT: &str = include_str!("../../resources/pitchfork/onstart.sh");
 pub struct Pitchfork {}
 
 impl Pitchfork {
-    pub fn from_toml(_v: &toml::Value) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_toml(_v: &toml::Value) -> Result<Self> {
         Ok(Self {})
     }
 }
@@ -21,7 +22,7 @@ impl Extension for Pitchfork {
         "pitchfork"
     }
 
-    async fn onstart(&self, _k: &KitchenConfig) -> Result<(), Box<dyn std::error::Error>> {
+    async fn onstart(&self, _k: &KitchenConfig) -> Result<()> {
         let mut child = Command::new("sudo")
             .args(["sh", "-s"])
             .stdin(Stdio::piped())
@@ -31,7 +32,7 @@ impl Extension for Pitchfork {
 
         let status = child.wait()?;
         if !status.success() {
-            return Err("pitchfork onstart failed".into());
+            return Err(eyre!("pitchfork onstart failed"));
         }
 
         Ok(())
