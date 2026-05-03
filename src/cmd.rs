@@ -8,8 +8,13 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::timeout;
 
+enum ScriptInput {
+    Script(String),
+    Command(String, Vec<String>),
+}
+
 pub struct ScriptRunner {
-    script: String,
+    input: ScriptInput,
     sudo: bool,
     shell: String,
     working_dir: Option<PathBuf>,
@@ -19,9 +24,23 @@ pub struct ScriptRunner {
 }
 
 impl ScriptRunner {
-    pub fn new(script: impl Into<String>) -> Self {
+    pub fn script(script: impl Into<String>) -> Self {
+        Self::new(ScriptInput::Script(script.into()))
+    }
+
+    pub fn command(
+        program: impl Into<String>,
+        args: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        Self::new(ScriptInput::Command(
+            program.into(),
+            args.into_iter().map(Into::into).collect(),
+        ))
+    }
+
+    pub fn new(input: ScriptInput) -> Self {
         Self {
-            script: script.into(),
+            input,
             sudo: false,
             shell: "sh".into(),
             working_dir: None,
@@ -77,22 +96,42 @@ impl ScriptRunner {
 
     async fn execute(&self) -> Result<()> {
         let label = self.label.as_deref().unwrap_or("script");
+        (match &self.input {
+            ScriptInput::Script(_) => "script",
+            ScriptInput::Command(prog, _) => prog.as_str(),
+        });
 
         if let Some(l) = &self.label {
             println!("==> {l}");
         }
 
-        // Build: [sudo] sh -s  (or bash -s, etc.)
-        let (program, args) = if self.sudo {
-            ("sudo", vec![self.shell.as_str(), "-s"])
-        } else {
-            (self.shell.as_str(), vec!["-s"])
+        let mut cmd = match &self.input {
+            ScriptInput::Script(_) => {
+                // Pipe the script to [sudo] sh -s via stdin — no quoting needed.
+                let (program, args) = if self.sudo {
+                    ("sudo", vec![self.shell.as_str(), "-s"])
+                } else {
+                    (self.shell.as_str(), vec!["-s"])
+                };
+                let mut cmd = Command::new(program);
+                cmd.args(&args).stdin(Stdio::piped());
+                cmd
+            }
+            ScriptInput::Command(program, args) => {
+                // Run the binary directly — no shell, no stdin.
+                let mut cmd = if self.sudo {
+                    let mut c = Command::new("sudo");
+                    c.arg(program);
+                    c
+                } else {
+                    Command::new(program)
+                };
+                cmd.args(args).stdin(Stdio::null());
+                cmd
+            }
         };
 
-        let mut cmd = Command::new(program);
-        cmd.args(&args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
+        cmd.stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .envs(&self.env);
 
@@ -102,13 +141,15 @@ impl ScriptRunner {
 
         let mut child = cmd.spawn()?;
 
-        // Write the script to stdin, then close it so the shell sees EOF.
-        let mut stdin = child.stdin.take().expect("stdin is piped");
-        let script = self.script.clone();
-        tokio::spawn(async move {
-            let _ = stdin.write_all(script.as_bytes()).await;
-            // stdin drops here, sending EOF
-        });
+        // For script input: write to stdin then close it so the shell sees EOF.
+        if let ScriptInput::Script(script) = &self.input {
+            let mut stdin = child.stdin.take().expect("stdin is piped");
+            let script = script.clone();
+            tokio::spawn(async move {
+                let _ = stdin.write_all(script.as_bytes()).await;
+                // stdin drops here, sending EOF
+            });
+        }
 
         // Stream stdout and stderr concurrently — neither blocks the other.
         let stdout = child.stdout.take().expect("stdout is piped");

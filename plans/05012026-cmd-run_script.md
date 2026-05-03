@@ -20,23 +20,36 @@ No new Cargo dependencies — `tokio` with full features is already present.
 
 ## Public API
 
-A builder struct for full control, plus a convenience free function for the common case:
+A builder struct for full control, plus convenience free functions for the common cases:
 
 ```rust
 // src/cmd/mod.rs
 
+// Run a shell script string
 pub async fn run_script(script: &str) -> Result<()> {
-    ScriptRunner::new(script).run().await
+    ScriptRunner::script(script).run().await
 }
 
-// Full control
-ScriptRunner::new(script)
+// Run a known binary with explicit args — no shell involved
+pub async fn run_command(program: &str, args: &[&str]) -> Result<()> {
+    ScriptRunner::command(program, args).run().await
+}
+
+// Full control — script variant
+ScriptRunner::script(script)
     .sudo()
     .shell("bash")
     .working_dir("/some/path")
     .env("MY_VAR", "value")
     .label("Installing mise")
     .timeout(Duration::from_secs(120))
+    .run()
+    .await?;
+
+// Full control — command variant
+ScriptRunner::command("tailscale", ["up", "--ssh"])
+    .sudo()
+    .label("tailscale up")
     .run()
     .await?;
 ```
@@ -56,8 +69,13 @@ use tokio::process::Command;
 use tokio::time::timeout;
 use std::process::Stdio;
 
+enum ScriptInput {
+    Script(String),
+    Command(String, Vec<String>),
+}
+
 pub struct ScriptRunner {
-    script: String,
+    input: ScriptInput,
     sudo: bool,
     shell: String,
     working_dir: Option<PathBuf>,
@@ -67,9 +85,20 @@ pub struct ScriptRunner {
 }
 
 impl ScriptRunner {
-    pub fn new(script: impl Into<String>) -> Self {
+    pub fn script(script: impl Into<String>) -> Self {
+        Self::new(ScriptInput::Script(script.into()))
+    }
+
+    pub fn command(program: impl Into<String>, args: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        Self::new(ScriptInput::Command(
+            program.into(),
+            args.into_iter().map(Into::into).collect(),
+        ))
+    }
+
+    fn new(input: ScriptInput) -> Self {
         Self {
-            script: script.into(),
+            input,
             sudo: false,
             shell: "sh".into(),
             working_dir: None,
@@ -129,28 +158,47 @@ impl ScriptRunner {
 
 ## `execute()` — streaming implementation
 
-The script is piped to the shell's stdin (mirrors the existing `dotfiles.rs` / `pitchfork.rs` pattern). This avoids temp files and shell-escaping the script content entirely.
+For `Script` input, the script string is piped to the shell's stdin — no temp files, no quoting. For `Command` input, the binary is invoked directly with no shell and no stdin.
 
 ```rust
 impl ScriptRunner {
     async fn execute(&self) -> Result<()> {
-        let label = self.label.as_deref().unwrap_or("script");
+        let label = self.label.as_deref().unwrap_or(match &self.input {
+            ScriptInput::Script(_) => "script",
+            ScriptInput::Command(prog, _) => prog.as_str(),
+        });
 
         if let Some(l) = &self.label {
             println!("==> {l}");
         }
 
-        // Build: [sudo] sh -s  (or bash -s, etc.)
-        let (program, mut args) = if self.sudo {
-            ("sudo", vec![self.shell.as_str(), "-s"])
-        } else {
-            (self.shell.as_str(), vec!["-s"])
+        let mut cmd = match &self.input {
+            ScriptInput::Script(_) => {
+                // Pipe the script to [sudo] sh -s via stdin — no quoting needed.
+                let (program, args) = if self.sudo {
+                    ("sudo", vec![self.shell.as_str(), "-s"])
+                } else {
+                    (self.shell.as_str(), vec!["-s"])
+                };
+                let mut cmd = Command::new(program);
+                cmd.args(&args).stdin(Stdio::piped());
+                cmd
+            }
+            ScriptInput::Command(program, args) => {
+                // Run the binary directly — no shell, no stdin.
+                let mut cmd = if self.sudo {
+                    let mut c = Command::new("sudo");
+                    c.arg(program);
+                    c
+                } else {
+                    Command::new(program)
+                };
+                cmd.args(args).stdin(Stdio::null());
+                cmd
+            }
         };
 
-        let mut cmd = Command::new(program);
-        cmd.args(&args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
+        cmd.stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .envs(&self.env);
 
@@ -160,13 +208,15 @@ impl ScriptRunner {
 
         let mut child = cmd.spawn()?;
 
-        // Write the script to stdin, then close it so the shell sees EOF.
-        let mut stdin = child.stdin.take().expect("stdin is piped");
-        let script = self.script.clone();
-        tokio::spawn(async move {
-            let _ = stdin.write_all(script.as_bytes()).await;
-            // stdin drops here, sending EOF
-        });
+        // For script input: write to stdin then close it so the shell sees EOF.
+        if let ScriptInput::Script(script) = &self.input {
+            let mut stdin = child.stdin.take().expect("stdin is piped");
+            let script = script.clone();
+            tokio::spawn(async move {
+                let _ = stdin.write_all(script.as_bytes()).await;
+                // stdin drops here, sending EOF
+            });
+        }
 
         // Stream stdout and stderr concurrently — neither blocks the other.
         let stdout = child.stdout.take().expect("stdout is piped");
@@ -294,10 +344,10 @@ ScriptRunner::new(slow_script)
 
 ## Using it from an extension
 
-Extensions that currently spawn child processes directly (`dotfiles.rs`, `pitchfork.rs`) can migrate to `ScriptRunner`:
+Extensions that currently spawn child processes directly (`dotfiles.rs`, `pitchfork.rs`) can migrate to `ScriptRunner`. Tailscale's `poststart` is a natural fit for `ScriptRunner::command` since it calls a known binary with known args:
 
 ```rust
-// Before (dotfiles.rs onstart):
+// Before (dotfiles.rs onstart — script variant):
 let mut child = Command::new("sh")
     .args(["-s", "--", repo, install_cmd])
     .stdin(Stdio::piped())
@@ -308,10 +358,19 @@ if !child.wait()?.success() {
 }
 
 // After:
-cmd::ScriptRunner::new(SCRIPT)
+cmd::ScriptRunner::script(SCRIPT)
     .env("DOTFILES_REPO", repo)
     .env("INSTALL_CMD", install_cmd)
     .label("dotfiles")
+    .run()
+    .await?;
+
+// Before (tailscale.rs poststart — command variant):
+// ... thread-based stdout/stderr forwarding, manual exit check ...
+
+// After:
+cmd::ScriptRunner::command("tailscale", ["up", "--ssh"])
+    .label("tailscale up")
     .run()
     .await?;
 ```
@@ -322,6 +381,6 @@ cmd::ScriptRunner::new(SCRIPT)
 
 | File             | Action                                                                |
 | ---------------- | --------------------------------------------------------------------- |
-| `src/cmd/mod.rs` | Create — `ScriptRunner`, builder methods, `execute()`, `run_script()` |
+| `src/cmd/mod.rs` | Create — `ScriptInput` enum, `ScriptRunner`, builder methods, `execute()`, `run_script()`, `run_command()` |
 | `src/main.rs`    | Add `mod cmd;`                                                        |
 | `Cargo.toml`     | No changes needed                                                     |

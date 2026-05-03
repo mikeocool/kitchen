@@ -24,7 +24,7 @@ impl Extension for Pitchfork {
     }
 
     async fn onstart(&self, _k: &KitchenConfig) -> Result<()> {
-        ScriptRunner::new(SCRIPT)
+        ScriptRunner::script(SCRIPT)
             .label("Setup pitchfork config")
             .sudo()
             .run()
