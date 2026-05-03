@@ -8,6 +8,7 @@ use crate::image::ContextFile;
 use crate::kitchen::KitchenConfig;
 
 pub mod dotfiles;
+pub mod mise;
 pub mod pitchfork;
 pub mod tailscale;
 
@@ -39,6 +40,7 @@ const REGISTRY: &[(&str, Builder)] = &[
     ("dotfiles", |v| {
         Ok(Box::new(dotfiles::Dotfiles::from_toml(v)?))
     }),
+    ("mise", |v| Ok(Box::new(mise::Mise::from_toml(v)?))),
     ("pitchfork", |v| {
         Ok(Box::new(pitchfork::Pitchfork::from_toml(v)?))
     }),

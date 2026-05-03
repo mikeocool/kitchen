@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use bollard::models::{Mount, MountBindOptions, MountTypeEnum};
@@ -17,9 +16,7 @@ pub struct KitchenConfig {
 }
 
 impl KitchenConfig {
-    pub fn from_workspace(
-        workspace: &Option<PathBuf>,
-    ) -> Result<KitchenConfig> {
+    pub fn from_workspace(workspace: &Option<PathBuf>) -> Result<KitchenConfig> {
         let local_workspace_path = match workspace {
             Some(ws) => std::fs::canonicalize(ws).unwrap_or_else(|_| ws.clone()),
             None => std::env::current_dir().expect("failed to get current directory"),

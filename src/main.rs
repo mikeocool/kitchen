@@ -6,6 +6,7 @@ use eyre::Result;
 
 use kitchen::KitchenConfig;
 
+mod cmd;
 mod config;
 mod container;
 mod extensions;

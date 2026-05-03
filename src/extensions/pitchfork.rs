@@ -3,6 +3,7 @@ use eyre::{Result, eyre};
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+use crate::cmd::ScriptRunner;
 use crate::extensions::Extension;
 use crate::kitchen::KitchenConfig;
 
@@ -23,17 +24,11 @@ impl Extension for Pitchfork {
     }
 
     async fn onstart(&self, _k: &KitchenConfig) -> Result<()> {
-        let mut child = Command::new("sudo")
-            .args(["sh", "-s"])
-            .stdin(Stdio::piped())
-            .spawn()?;
-
-        child.stdin.as_mut().unwrap().write_all(SCRIPT.as_bytes())?;
-
-        let status = child.wait()?;
-        if !status.success() {
-            return Err(eyre!("pitchfork onstart failed"));
-        }
+        ScriptRunner::new(SCRIPT)
+            .label("Setup pitchfork config")
+            .sudo()
+            .run()
+            .await?;
 
         Ok(())
     }
