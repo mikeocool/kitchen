@@ -4,8 +4,8 @@ use bollard::Docker;
 use bollard::errors::Error as BollardError;
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::models::{
-    ContainerCreateBody, EndpointSettings, HostConfig, Mount, MountBindOptions, MountTypeEnum,
-    NetworkCreateRequest, NetworkingConfig, VolumeCreateRequest,
+    ContainerCreateBody, DeviceMapping, EndpointSettings, HostConfig, Mount, MountBindOptions,
+    MountTypeEnum, NetworkCreateRequest, NetworkingConfig, VolumeCreateRequest,
 };
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
@@ -121,6 +121,15 @@ pub async fn run(docker: &Docker, kitchen: &KitchenConfig) -> Result<(), bollard
         networking_config,
         host_config: Some(HostConfig {
             mounts: Some(mounts),
+
+            // tailsacle requirements for non-user space networking
+            devices: Some(vec![DeviceMapping {
+                path_on_host: Some(String::from("/dev/net/tun")),
+                path_in_container: Some(String::from("/dev/net/tun")),
+                cgroup_permissions: Some(String::from("rwm")),
+            }]),
+            cap_add: Some(vec![String::from("NET_ADMIN"), String::from("SYS_MODULE")]),
+
             ..Default::default()
         }),
         ..Default::default()
