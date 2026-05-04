@@ -8,7 +8,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::timeout;
 
-enum ScriptInput {
+pub enum ScriptInput {
     Script(String),
     Command(String, Vec<String>),
 }
