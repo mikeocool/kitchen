@@ -8,6 +8,7 @@ use crate::image::ContextFile;
 use crate::kitchen::KitchenConfig;
 
 pub mod dotfiles;
+
 pub mod mise;
 pub mod pitchfork;
 pub mod tailscale;

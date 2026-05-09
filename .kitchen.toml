@@ -1,2 +1,3 @@
-dotfiles_repo = "https://github.com/mikeocool/dotfiles.git"
-dotfiles_install_cmd = "./install.sh"
+[dotfiles]
+repo = "https://github.com/mikeocool/dotfiles.git"
+install_cmd = "./install.sh"

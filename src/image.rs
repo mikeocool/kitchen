@@ -4,6 +4,7 @@ use bytes;
 use eyre::Result;
 use flate2;
 use futures_util::stream::StreamExt;
+use std::collections::HashMap;
 use tar;
 
 use crate::kitchen::KitchenConfig;
@@ -35,10 +36,14 @@ pub async fn build(kitchen: &KitchenConfig) -> Result<()> {
     let tar_bytes = build_context_tar(kitchen)?;
     let body = bollard::body_full(bytes::Bytes::from(tar_bytes));
 
+    let mut buildargs = HashMap::new();
+    buildargs.insert("KITCHEN_WORKSPACE", kitchen.container_workspace_path.as_str());
+
     let opts = bollard::query_parameters::BuildImageOptionsBuilder::default()
         .dockerfile("Dockerfile")
         .t(&kitchen.container_name())
         .rm(true)
+        .buildargs(&buildargs)
         .build();
 
     // TODO share this

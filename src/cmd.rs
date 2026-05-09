@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::time::Duration;
 
-use eyre::{Result, eyre};
+use eyre::{Result, WrapErr, eyre};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::timeout;
@@ -36,6 +36,28 @@ impl ScriptRunner {
             program.into(),
             args.into_iter().map(Into::into).collect(),
         ))
+    }
+
+    pub async fn from_url(url: impl AsRef<str>) -> Result<Self> {
+        let url = url.as_ref();
+
+        let response = reqwest::get(url)
+            .await
+            .wrap_err_with(|| format!("failed to fetch {url}"))?;
+
+        if !response.status().is_success() {
+            return Err(eyre!(
+                "fetching {url} returned status {}",
+                response.status()
+            ));
+        }
+
+        let script = response
+            .text()
+            .await
+            .wrap_err_with(|| format!("failed ot read response body from {url}"))?;
+
+        Ok(Self::new(ScriptInput::Script(script)))
     }
 
     pub fn new(input: ScriptInput) -> Self {

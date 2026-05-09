@@ -23,7 +23,7 @@ cargo run
 
 ## TODO
 
-- eyre/anyhow
+- ~/.local/state is owned by root which breaks things (if no mise and pitchfork runs first)
 - status command/centralizing inspecting running container
 - mise extension
 - extensions install hook + contributing to docker image
