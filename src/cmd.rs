@@ -165,12 +165,13 @@ impl ScriptRunner {
 
         // For script input: write to stdin then close it so the shell sees EOF.
         if let ScriptInput::Script(script) = &self.input {
-            let mut stdin = child.stdin.take().expect("stdin is piped");
-            let script = script.clone();
-            tokio::spawn(async move {
-                let _ = stdin.write_all(script.as_bytes()).await;
-                // stdin drops here, sending EOF
-            });
+            if let Some(mut stdin) = child.stdin.take() {
+                let script = script.clone();
+                tokio::spawn(async move {
+                    let _ = stdin.write_all(script.as_bytes()).await;
+                    // stdin drops here, sending EOF
+                });
+            }
         }
 
         // Stream stdout and stderr concurrently — neither blocks the other.
