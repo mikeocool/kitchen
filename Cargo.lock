@@ -1330,6 +1330,7 @@ dependencies = [
  "serde",
  "subst",
  "tar",
+ "tempfile",
  "tokio 1.52.1",
  "tokyo",
  "toml",

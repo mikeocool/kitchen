@@ -4,6 +4,7 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use eyre::{Result, WrapErr, eyre};
+use std::os::unix::fs::PermissionsExt;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::time::timeout;
@@ -127,11 +128,36 @@ impl ScriptRunner {
             println!("==> {l}");
         }
 
+        // Keep the temp file alive util child exists
+        let mut shebang_tmp: Option<tempfile::TempPath> = None;
+
         let mut cmd = match &self.input {
+            ScriptInput::Script(script) if script.starts_with("#!") => {
+                let mut tmp = tempfile::NamedTempFile::new()
+                    .wrap_err("failed to create temp file for shebang script")?;
+                std::io::Write::write_all(&mut tmp, script.as_bytes())
+                    .wrap_err("failed to write shebang script to temp file")?;
+                std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o755))
+                    .wrap_err("failed to chmod shebang script")?;
+
+                let tmp_path = tmp.into_temp_path();
+
+                let mut cmd = if self.sudo {
+                    let mut c = Command::new("sudo");
+                    c.arg("-E");
+                    c.arg(tmp_path.to_path_buf());
+                    c
+                } else {
+                    Command::new(tmp_path.to_path_buf())
+                };
+                cmd.stdin(Stdio::null());
+                shebang_tmp = Some(tmp_path);
+                cmd
+            }
             ScriptInput::Script(_) => {
                 // Pipe the script to [sudo] sh -s via stdin — no quoting needed.
                 let (program, args) = if self.sudo {
-                    ("sudo", vec![self.shell.as_str(), "-s"])
+                    ("sudo", vec!["-E", self.shell.as_str(), "-s"])
                 } else {
                     (self.shell.as_str(), vec!["-s"])
                 };

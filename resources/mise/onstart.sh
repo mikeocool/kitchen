@@ -17,7 +17,6 @@ if [[ -f "${KITCHEN_WORKSPACE}/.kitchen/mise.global.toml" ]]; then
     fi
 fi
 
-echo "kw: ${KITCHEN_WORKSPACE}"
 cd ${KITCHEN_WORKSPACE}
 mise trust --all
 mise install

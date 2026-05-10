@@ -39,7 +39,6 @@ impl Extension for Mise {
         );
         ScriptRunner::script(ONSTART_SCRIPT)
             .label("Setting up mise")
-            .shell("bash") // TODO use bang line?
             .sudo()
             .run()
             .await?;
