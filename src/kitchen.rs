@@ -21,6 +21,9 @@ impl KitchenConfig {
             Some(ws) => std::fs::canonicalize(ws).unwrap_or_else(|_| ws.clone()),
             None => std::env::current_dir().expect("failed to get current directory"),
         };
+        if !local_workspace_path.exists() {
+            eyre::bail!("workspace path does not exist: {}", local_workspace_path.display());
+        }
 
         let config_toml = config::load(&local_workspace_path)?;
         let config_toml = config_toml.as_ref();
