@@ -39,7 +39,6 @@ impl Extension for Mise {
         );
         ScriptRunner::script(ONSTART_SCRIPT)
             .label("Setting up mise")
-            .sudo()
             .run()
             .await?;
 

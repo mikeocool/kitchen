@@ -23,9 +23,13 @@ cargo run
 
 ## TODO
 
+- read and run poststart script from .kitchen
+- add option to copy local files
+- reuse stopped container
+
+- add options to specify env vars in container -- write to /etc/environment (kubeconfig for chuck) -- make it possible to update this when container is running
 - ~/.local/state is owned by root which breaks things (if no mise and pitchfork runs first)
 - status command/centralizing inspecting running container
-- mise extension
 - extensions install hook + contributing to docker image
 - docker outside of docker extension (figure out contributing mounts)
     - get the DOCKER SOCK from env, or let it be configurable
