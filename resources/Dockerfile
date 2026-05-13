@@ -44,7 +44,6 @@ RUN mkdir -p /etc/pitchfork/ && chown k:k /etc/pitchfork/
 RUN mkdir -p /usr/local/bin/
 COPY kitchen /usr/local/bin/kitchen
 
-RUN echo "kw: ${KITCHEN_WORKSPACE}"
 RUN mkdir -p ${KITCHEN_WORKSPACE}
 # TODO copy config?
 ENV KITCHEN_WORKSPACE=${KITCHEN_WORKSPACE}
