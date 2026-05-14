@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
 set -e
 
-REPO="$1"
-INSTALL_CMD="$2"
+
+if [ -z "$DOTFILES_REPO" ]; then
+    echo "Error: DOTFILES_REPO is not set" >&2
+    exit 1
+fi
+
 DOTFILES_DIR="${HOME}/dotfiles"
 
 echo "Installing dotfiles..."
@@ -24,10 +28,8 @@ if [ -d "$DOTFILES_DIR" ]; then
     fi
 else
     echo "${DOTFILES_DIR} does not exist, cloning repo..."
-    git clone "$REPO" "$DOTFILES_DIR"
+    git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
     cd "$DOTFILES_DIR"
 fi
 
-if [ -n "$INSTALL_CMD" ]; then
-    sh -c "$INSTALL_CMD"
-fi
+sh -c "$DOTFILES_INSTALL_CMD"

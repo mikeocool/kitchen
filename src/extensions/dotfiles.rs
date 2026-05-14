@@ -5,9 +5,10 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 use super::Extension;
+use crate::cmd::ScriptRunner;
 use crate::kitchen::KitchenConfig;
 
-const SCRIPT: &str = include_str!("../../resources/provision/dotfiles.sh");
+const ONSTART_SCRIPT: &str = include_str!("../../resources/dotfiles/onstart.sh");
 
 pub struct Dotfiles {
     pub repo: Option<String>,
@@ -42,17 +43,13 @@ impl Extension for Dotfiles {
         };
         let install_cmd = self.install_cmd.as_deref().unwrap_or("");
 
-        let mut child = Command::new("sh")
-            .args(["-s", "--", repo, install_cmd])
-            .stdin(Stdio::piped())
-            .spawn()?;
+        ScriptRunner::script(ONSTART_SCRIPT)
+            .label("Setting up dotfiles")
+            .env("DOTFILES_REPO", repo)
+            .env("DOTFILES_INSTALL_CMD", install_cmd)
+            .run()
+            .await?;
 
-        child.stdin.as_mut().unwrap().write_all(SCRIPT.as_bytes())?;
-
-        let status = child.wait()?;
-        if !status.success() {
-            return Err(eyre!("dotfiles provisioning failed"));
-        }
         Ok(())
     }
 }
