@@ -7,7 +7,8 @@ use crate::cmd::ScriptRunner;
 use crate::extensions::Extension;
 use crate::kitchen::KitchenConfig;
 
-const SCRIPT: &str = include_str!("../../resources/pitchfork/onstart.sh");
+const INSTALL_SCRIPT: &str = include_str!("../../resources/pitchfork/install.sh");
+const ONSTART_SCRIPT: &str = include_str!("../../resources/pitchfork/onstart.sh");
 
 pub struct Pitchfork {}
 
@@ -23,8 +24,18 @@ impl Extension for Pitchfork {
         "pitchfork"
     }
 
+    async fn install(&self, _k: &KitchenConfig) -> Result<()> {
+        // doesnt need sudo because install runs as root
+        ScriptRunner::script(INSTALL_SCRIPT)
+            .label("Install pitchfork")
+            .run()
+            .await?;
+
+        Ok(())
+    }
+
     async fn onstart(&self, _k: &KitchenConfig) -> Result<()> {
-        ScriptRunner::script(SCRIPT)
+        ScriptRunner::script(ONSTART_SCRIPT)
             .label("Setup pitchfork config")
             .sudo()
             .run()
