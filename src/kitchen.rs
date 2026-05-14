@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use bollard::models::{Mount, MountBindOptions, MountTypeEnum};
-use eyre::Result;
+use eyre::{Result, eyre};
 
 use crate::config;
 use crate::extensions;
@@ -10,7 +10,8 @@ use crate::extensions::Extension;
 pub struct KitchenConfig {
     pub name: String,
     pub local_workspace_path: PathBuf,
-    pub container_workspace_path: String,
+    container_workspace_path: PathBuf,
+    container_workspace_path_str: String,
     pub container: ContainerConfig,
     pub extensions: Vec<Box<dyn Extension>>,
 }
@@ -22,7 +23,10 @@ impl KitchenConfig {
             None => std::env::current_dir().expect("failed to get current directory"),
         };
         if !local_workspace_path.exists() {
-            eyre::bail!("workspace path does not exist: {}", local_workspace_path.display());
+            eyre::bail!(
+                "workspace path does not exist: {}",
+                local_workspace_path.display()
+            );
         }
 
         let config_toml = config::load(&local_workspace_path)?;
@@ -31,14 +35,24 @@ impl KitchenConfig {
         let workspace_dir_name = local_workspace_path
             .file_name()
             .expect("workspace path has no final component") // TODO return error that name needs to be specified in config or with arg
-            .to_string_lossy()
-            .into_owned();
+            .to_str()
+            .ok_or_else(|| eyre!("path contains invalid UTF-8: {:?}", local_workspace_path))?
+            .to_string();
 
         let name = config_toml
             .and_then(|c| c.name.clone())
             .unwrap_or(workspace_dir_name);
 
-        let container_workspace_path = format!("/workspaces/{}", name);
+        let container_workspace_path = Path::new("/workspaces/").join(name.as_str());
+        let container_workspace_path_str = container_workspace_path
+            .to_str()
+            .ok_or_else(|| {
+                eyre!(
+                    "path contains invalid UTF-8: {:?}",
+                    container_workspace_path
+                )
+            })?
+            .to_string();
 
         let container = ContainerConfig::from_config(
             config_toml.and_then(|c| c.container.as_ref()),
@@ -51,6 +65,7 @@ impl KitchenConfig {
             name,
             local_workspace_path,
             container_workspace_path,
+            container_workspace_path_str,
             container,
             extensions,
         })
@@ -60,8 +75,16 @@ impl KitchenConfig {
         format!("{}-kitchen", self.name)
     }
 
+    pub fn container_workspace_path(&self) -> &Path {
+        &self.container_workspace_path
+    }
+
+    pub fn container_workspace_path_str(&self) -> &str {
+        &self.container_workspace_path_str
+    }
+
     pub fn kitchen_workspace_env(&self) -> String {
-        format!("KITCHEN_WORKSPACE={}", self.container_workspace_path)
+        format!("KITCHEN_WORKSPACE={}", self.container_workspace_path_str())
     }
 }
 
@@ -115,6 +138,7 @@ impl ContainerConfig {
             host_workspace_path.join(path)
         };
 
+        // TODO handle error here
         resolved_path.to_string_lossy().into_owned()
     }
 }

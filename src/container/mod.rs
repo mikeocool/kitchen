@@ -87,7 +87,7 @@ pub async fn run(docker: &Docker, kitchen: &KitchenConfig) -> Result<(), bollard
                     .to_string_lossy()
                     .to_string(),
             ),
-            target: Some(kitchen.container_workspace_path.clone()),
+            target: Some(kitchen.container_workspace_path_str().to_string()),
             bind_options: Some(MountBindOptions {
                 create_mountpoint: Some(false),
                 ..Default::default()

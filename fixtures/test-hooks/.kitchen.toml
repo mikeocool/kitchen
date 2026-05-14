@@ -1,0 +1,2 @@
+[container]
+workspace_mount_path = "/home/ubuntu/workspace/kitchen/fixtures/test-hooks/"

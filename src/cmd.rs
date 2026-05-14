@@ -11,7 +11,7 @@ use tokio::time::timeout;
 
 pub enum ScriptInput {
     Script(String),
-    Command(String, Vec<String>),
+    Command(PathBuf, Vec<String>),
 }
 
 pub struct ScriptRunner {
@@ -30,7 +30,7 @@ impl ScriptRunner {
     }
 
     pub fn command(
-        program: impl Into<String>,
+        program: impl Into<PathBuf>,
         args: impl IntoIterator<Item = impl Into<String>>,
     ) -> Self {
         Self::new(ScriptInput::Command(
@@ -119,10 +119,6 @@ impl ScriptRunner {
 
     async fn execute(&self) -> Result<()> {
         let label = self.label.as_deref().unwrap_or("script");
-        (match &self.input {
-            ScriptInput::Script(_) => "script",
-            ScriptInput::Command(prog, _) => prog.as_str(),
-        });
 
         if let Some(l) = &self.label {
             println!("==> {l}");

@@ -37,7 +37,7 @@ pub async fn build(kitchen: &KitchenConfig) -> Result<()> {
     let body = bollard::body_full(bytes::Bytes::from(tar_bytes));
 
     let mut buildargs = HashMap::new();
-    buildargs.insert("KITCHEN_WORKSPACE", kitchen.container_workspace_path.as_str());
+    buildargs.insert("KITCHEN_WORKSPACE", kitchen.container_workspace_path_str());
 
     let opts = bollard::query_parameters::BuildImageOptionsBuilder::default()
         .dockerfile("Dockerfile")

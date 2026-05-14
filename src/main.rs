@@ -10,6 +10,7 @@ mod cmd;
 mod config;
 mod container;
 mod extensions;
+mod hooks;
 mod image;
 mod kitchen;
 
@@ -138,5 +139,6 @@ async fn container_poststart() -> Result<()> {
 
     let kitchen = KitchenConfig::from_workspace(&Some(workspace_path))?;
     extensions::poststart(&kitchen).await?;
+    hooks::poststart(&kitchen).await?;
     Ok(())
 }
