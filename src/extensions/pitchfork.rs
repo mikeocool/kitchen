@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 
 use crate::cmd::ScriptRunner;
 use crate::extensions::Extension;
+use crate::image::Containerfile;
 use crate::kitchen::KitchenConfig;
 
 const INSTALL_SCRIPT: &str = include_str!("../../resources/pitchfork/install.sh");
@@ -22,6 +23,12 @@ impl Pitchfork {
 impl Extension for Pitchfork {
     fn name(&self) -> &'static str {
         "pitchfork"
+    }
+
+    fn image_instructions(&self, _k: &KitchenConfig) -> Result<Option<Containerfile>> {
+        Ok(Some(Containerfile::new().run(
+            "mkdir -p /etc/pitchfork/ && chown k:k /etc/pitchfork/",
+        )))
     }
 
     async fn install(&self, _k: &KitchenConfig) -> Result<()> {

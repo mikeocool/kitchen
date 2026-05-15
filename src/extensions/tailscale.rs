@@ -5,6 +5,7 @@ use eyre::Result;
 use crate::cmd::ScriptRunner;
 use crate::extensions::Extension;
 use crate::image::ContextFile;
+use crate::image::Containerfile;
 use crate::kitchen::KitchenConfig;
 
 const PITCHFORK_TOML: &[u8] = include_bytes!("../../resources/tailscale/pitchfork.toml");
@@ -30,9 +31,17 @@ impl Extension for Tailscale {
         )])
     }
 
+    fn image_instructions(&self, _k: &KitchenConfig) -> Result<Option<Containerfile>> {
+        Ok(Some(Containerfile::new().copy("tailscale/pitchfork.toml", "/etc/kitchen/daemons/tailscale.toml")))
+    }
+
     async fn install(&self, _k: &KitchenConfig) -> Result<()> {
-        // get and run tailscale install script, if it's not already installed
-        // TODO put daemon in place
+        ScriptRunner::from_url("https://tailscale.com/install.sh")
+            .await?
+            .label("install tailscale")
+            .run()
+            .await?;
+
         Ok(())
     }
 

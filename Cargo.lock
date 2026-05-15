@@ -1328,6 +1328,7 @@ dependencies = [
  "futures-util",
  "reqwest",
  "serde",
+ "serde_json",
  "subst",
  "tar",
  "tempfile",

@@ -7,6 +7,8 @@ use crate::config;
 use crate::extensions;
 use crate::extensions::Extension;
 
+const DEFAULT_BASE_IMAGE: &str = "debian:13-slim";
+
 pub struct KitchenConfig {
     pub name: String,
     pub local_workspace_path: PathBuf,
@@ -89,6 +91,7 @@ impl KitchenConfig {
 }
 
 pub struct ContainerConfig {
+    pub base_image: String,
     pub host_workspace_path: PathBuf,
     pub additional_mounts: Vec<Mount>,
     pub network: Option<String>,
@@ -99,7 +102,12 @@ impl ContainerConfig {
         config_toml: Option<&config::Container>,
         local_workspace_path: &std::path::Path,
     ) -> Result<ContainerConfig> {
-        // TODO this wrong is we're running in the container
+        let base_image = config_toml
+            .and_then(|c| c.base_image.as_deref())
+            .unwrap_or(DEFAULT_BASE_IMAGE)
+            .to_string();
+
+        // TODO this is wrong if we're running in the container (pull from env var?)
         let host_workspace_path = config_toml
             .and_then(|c| c.workspace_mount_path.as_deref())
             .unwrap_or(local_workspace_path)
@@ -124,6 +132,7 @@ impl ContainerConfig {
         }
 
         Ok(Self {
+            base_image,
             host_workspace_path,
             additional_mounts: mounts,
             network: config_toml.and_then(|c| c.network.clone()),
@@ -154,6 +163,7 @@ mod tests {
         mounts: Option<Vec<config::Mount>>,
     ) -> config::Container {
         config::Container {
+            base_image: Some(DEFAULT_BASE_IMAGE.to_string()),
             workspace_mount_path: workspace_mount_path.map(PathBuf::from),
             network: None,
             additional_mounts: mounts,

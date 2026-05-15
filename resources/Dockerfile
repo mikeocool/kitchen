@@ -22,7 +22,7 @@ ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 
 # Install tailscale
 COPY tailscale/pitchfork.toml /etc/kitchen/daemons/tailscale.toml
-RUN curl -fsSL https://tailscale.com/install.sh | sh
+# RUN curl -fsSL https://tailscale.com/install.sh | sh
 
 # Install docker
 RUN curl -fsSL https://get.docker.com | sh

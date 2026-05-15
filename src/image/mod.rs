@@ -9,8 +9,11 @@ use tar;
 
 use crate::kitchen::KitchenConfig;
 
-const DOCKERFILE: &[u8] = include_bytes!("../resources/Dockerfile");
-const INIT_SH: &[u8] = include_bytes!("../resources/init.sh");
+pub mod containerfile;
+pub use containerfile::Containerfile;
+
+const DOCKERFILE: &[u8] = include_bytes!("../../resources/Dockerfile");
+const INIT_SH: &[u8] = include_bytes!("../../resources/init.sh");
 
 pub struct ContextFile {
     pub path: String,
@@ -32,6 +35,7 @@ impl ContextFile {
         self
     }
 }
+
 pub async fn build(kitchen: &KitchenConfig) -> Result<()> {
     let tar_bytes = build_context_tar(kitchen)?;
     let body = bollard::body_full(bytes::Bytes::from(tar_bytes));
@@ -62,12 +66,50 @@ pub async fn build(kitchen: &KitchenConfig) -> Result<()> {
     Ok(())
 }
 
+fn build_containerfile(kitchen: &KitchenConfig) -> Result<String> {
+    let mut containerfile = Containerfile::new()
+        .from(&kitchen.container.base_image)
+        .arg("KITCHEN_WORKSPACE", "/workspace/default")
+        // TODO make this better
+        .run(r#"apt-get update  \
+            && apt-get -y --no-install-recommends install  \
+                sudo gosu curl git ca-certificates build-essential jq zsh vim openssh-client pkg-config libssl-dev locales \
+            && rm -rf /var/lib/apt/lists/*"#)
+        //fixes terminal wonkiness (but will presumably need to be different for non-us users)
+        //maybe do the locale-get in the init script with the user's LANG?
+        .run(r#"echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen"#)
+        .run("mkdir -p /etc/kitchen/daemons/")
+        .run(r#"useradd -m -s /bin/zsh k \
+            && usermod -aG sudo k \
+            && echo "k ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/k"#);
+    // TODO SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+    for ext in &kitchen.extensions {
+        if let Some(instructions) = ext.image_instructions(kitchen)? {
+            containerfile = containerfile.extend(&instructions);
+        }
+    }
+
+    // from https://mise.jdx.dev/mise-cookbook/docker.html
+    Ok(containerfile
+        .run("mkdir -p /usr/local/bin/")
+        .copy("kitchen", "/usr/local/bin/kitchen")
+        .run("mkdir -p ${KITCHEN_WORKSPACE}")
+        .env("KITCHEN_WORKSPACE", "${KITCHEN_WORKSPACE}")
+        .run("/usr/local/bin/kitchen container-install")
+        .copy("init.sh", "/init.sh")
+        .run("chmod +x init.sh")
+        .user("k")
+        .entrypoint(&["/init.sh"])
+        .build())
+}
+
 fn build_context_tar(kitchen: &KitchenConfig) -> Result<Vec<u8>> {
     let self_path = std::env::current_exe().expect("failed to get current exe path");
     let self_bytes = std::fs::read(&self_path).expect("failed to read current exe");
 
     let mut files = vec![
-        ContextFile::new("Dockerfile", DOCKERFILE),
+        ContextFile::new("Dockerfile", build_containerfile(&kitchen)?),
         ContextFile::new("init.sh", INIT_SH).with_mode(0o755),
         // TODO this is nice for dev, but will break if there's a mismatch
         // between arch/os family on the host and the image

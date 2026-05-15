@@ -4,11 +4,12 @@ use std::collections::HashSet;
 use eyre::{Result, eyre};
 
 use crate::config::KitchenToml;
-use crate::image::ContextFile;
+use crate::image::{Containerfile, ContextFile};
 use crate::kitchen::KitchenConfig;
 
 pub mod dotfiles;
 
+pub mod docker;
 pub mod mise;
 pub mod pitchfork;
 pub mod tailscale;
@@ -19,6 +20,10 @@ pub trait Extension: Send + Sync {
 
     fn image_context(&self, _k: &KitchenConfig) -> Result<Vec<ContextFile>> {
         Ok(vec![])
+    }
+
+    fn image_instructions(&self, _k: &KitchenConfig) -> Result<Option<Containerfile>> {
+        Ok(None)
     }
     // TODO container_config -- add container config that gets merged into existing config
 
@@ -45,6 +50,7 @@ const REGISTRY: &[(&str, Builder)] = &[
     ("pitchfork", |v| {
         Ok(Box::new(pitchfork::Pitchfork::from_toml(v)?))
     }),
+    ("docker", |v| Ok(Box::new(docker::Docker::from_toml(v)?))),
     ("tailscale", |v| {
         Ok(Box::new(tailscale::Tailscale::from_toml(v)?))
     }),

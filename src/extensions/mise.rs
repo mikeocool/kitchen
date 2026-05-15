@@ -3,6 +3,7 @@ use eyre::Result;
 
 use super::Extension;
 use crate::cmd::ScriptRunner;
+use crate::image::Containerfile;
 use crate::kitchen::KitchenConfig;
 
 const ONSTART_SCRIPT: &str = include_str!("../../resources/mise/onstart.sh");
@@ -19,6 +20,12 @@ impl Mise {
 impl Extension for Mise {
     fn name(&self) -> &'static str {
         "mise"
+    }
+
+    fn image_instructions(&self, _k: &KitchenConfig) -> Result<Option<Containerfile>> {
+        Ok(Some(
+            Containerfile::new().env("MISE_INSTALL_PATH", "/usr/local/bin/mise"),
+        ))
     }
 
     async fn install(&self, _k: &KitchenConfig) -> Result<()> {
