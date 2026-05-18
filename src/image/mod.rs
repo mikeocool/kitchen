@@ -12,8 +12,8 @@ use crate::kitchen::KitchenConfig;
 pub mod containerfile;
 pub use containerfile::Containerfile;
 
-const DOCKERFILE: &[u8] = include_bytes!("../../resources/Dockerfile");
 const INIT_SH: &[u8] = include_bytes!("../../resources/init.sh");
+const KTICHEN_PKG: &[u8] = include_bytes!("../../resources/lib/kitchen-pkg");
 
 pub struct ContextFile {
     pub path: String,
@@ -67,21 +67,40 @@ pub async fn build(kitchen: &KitchenConfig) -> Result<()> {
 }
 
 fn build_containerfile(kitchen: &KitchenConfig) -> Result<String> {
+    let mut system_packages = vec![
+        "sudo",
+        "curl",
+        "git",
+        "ca-certificates", // might needs to run update-ca-certificates (debian) or update-ca-trust (redhat)
+        "zsh",             // TODO configure useer's shell in config and install based on that
+        "vim",
+        // TODO these are debian specific
+        "build-essential", // redhat: dnf groupinstall -y "Development Tools" alpine: build-base
+        "pkg-config",
+        "openssh-client", // openssh-clients on redhat -- needed for git ssh clones
+        "locales",
+    ];
+    system_packages.extend(kitchen.system_packages.iter().map(|s| s.as_str()));
+    let pkg_args = system_packages.join(" ");
+
     let mut containerfile = Containerfile::new()
         .from(&kitchen.container.base_image)
         .arg("KITCHEN_WORKSPACE", "/workspace/default")
-        // TODO make this better
-        .run(r#"apt-get update  \
-            && apt-get -y --no-install-recommends install  \
-                sudo gosu curl git ca-certificates build-essential jq zsh vim openssh-client pkg-config libssl-dev locales \
-            && rm -rf /var/lib/apt/lists/*"#)
+        .run("mkdir -p /usr/lib/kitchen/")
+        .copy("kitchen-pkg", "/usr/lib/kitchen/kitchen-pkg")
+        .run("chmod +x /usr/lib/kitchen/kitchen-pkg")
+        .run(&format!("/usr/lib/kitchen/kitchen-pkg {}", pkg_args))
         //fixes terminal wonkiness (but will presumably need to be different for non-us users)
         //maybe do the locale-get in the init script with the user's LANG?
+        //will be different on other distros
         .run(r#"echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen"#)
         .run("mkdir -p /etc/kitchen/daemons/")
-        .run(r#"useradd -m -s /bin/zsh k \
+        .run(
+            r#"useradd -m -s /bin/zsh k \
             && usermod -aG sudo k \
-            && echo "k ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/k"#);
+            && echo "k ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/k"#,
+        );
+
     // TODO SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
     for ext in &kitchen.extensions {
@@ -111,6 +130,7 @@ fn build_context_tar(kitchen: &KitchenConfig) -> Result<Vec<u8>> {
     let mut files = vec![
         ContextFile::new("Dockerfile", build_containerfile(&kitchen)?),
         ContextFile::new("init.sh", INIT_SH).with_mode(0o755),
+        ContextFile::new("kitchen-pkg", KTICHEN_PKG).with_mode(0o755),
         // TODO this is nice for dev, but will break if there's a mismatch
         // between arch/os family on the host and the image
         ContextFile::new("kitchen", self_bytes).with_mode(0o755),

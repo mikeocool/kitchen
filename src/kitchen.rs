@@ -14,6 +14,7 @@ pub struct KitchenConfig {
     pub local_workspace_path: PathBuf,
     container_workspace_path: PathBuf,
     container_workspace_path_str: String,
+    pub system_packages: Vec<String>,
     pub container: ContainerConfig,
     pub extensions: Vec<Box<dyn Extension>>,
 }
@@ -61,6 +62,10 @@ impl KitchenConfig {
             local_workspace_path.as_path(),
         )?;
 
+        let system_packages = config_toml
+            .and_then(|c| c.system_packages.clone())
+            .unwrap_or_default();
+
         let extensions = extensions::build(config_toml)?;
 
         Ok(KitchenConfig {
@@ -68,6 +73,7 @@ impl KitchenConfig {
             local_workspace_path,
             container_workspace_path,
             container_workspace_path_str,
+            system_packages,
             container,
             extensions,
         })

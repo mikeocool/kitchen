@@ -1,0 +1,67 @@
+#!/bin/sh
+set -e
+
+command_exists() {
+	command -v "$@" > /dev/null 2>&1
+}
+
+get_distribution() {
+	lsb_dist=""
+	# Most linuxes should have /etc/os-release
+	if [ -r /etc/os-release ]; then
+		lsb_dist="$(. /etc/os-release && echo "$ID")"
+	fi
+
+	# convert to lowercase
+	lsb_dist="$(echo "$lsb_dist" | tr '[:upper:]' '[:lower:]')"
+
+	# Returning an empty string here should be alright since the
+	# case statements don't act unless you provide an actual value
+	echo "$lsb_dist"
+}
+
+do_install() {
+    lsb_dist=$( get_distribution )
+    case "$lsb_dist" in
+        ubuntu|debian|raspbian)
+            apt-get -qq update >/dev/null
+            DEBIAN_FRONTEND=noninteractive apt-get -y -qq install "$@"
+            apt-get clean && rm -rf /var/lib/apt/lists/*
+            exit 0;
+            ;;
+        centos|fedora|rhel|rocky|amzn)
+            # dnf5, dnf, yum
+            if command_exists dnf5; then
+                dnf5 makecache
+                dnf5 install -y -q "$@"
+                dnf5 clean all
+            elif command_exists dnf; then
+                dnf makecache
+                dnf install -y -q "$@"
+                dnf clean all
+            else
+                yum makecache
+                yum install -y -q "$@"
+                yum clean all
+            fi
+            exit 0;
+            ;;
+        alpine)
+            apk update
+            apk add --no-cache -q "$@"
+            exit 0;
+            ;;
+        *)
+            echo
+			echo "ERROR: Could not identify pacakge manager for '$lsb_dist'"
+			echo
+			exit 1
+            ;;
+        # TODO gentoo, arch(?), opensuse*, SLES, nix?
+    esac
+    exit 1;
+}
+
+# TODO add commands/options for update and clearing package index cache
+
+do_install "$@"

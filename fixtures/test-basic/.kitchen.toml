@@ -1,3 +1,7 @@
+system_packages = [
+    "htop"
+]
+
 [dotfiles]
 repo = "https://github.com/mikeocool/dotfiles.git"
 install_cmd = "./install.sh"

@@ -1,3 +1,8 @@
+system_packages = [
+    "openssh-client",
+    "libssl-dev"
+]
+
 [dotfiles]
 repo = "https://github.com/mikeocool/dotfiles.git"
 install_cmd = "./install.sh"

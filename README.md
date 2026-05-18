@@ -23,6 +23,10 @@ cargo run
 
 ## TODO
 
+- system packages
+    - as part of install, install the system packages
+    - test across distros
+
 - mise permssions seem messed up -- because it runs with sudo?
 - read and run poststart script from .kitchen
 - add option to copy local files

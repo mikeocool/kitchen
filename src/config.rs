@@ -5,6 +5,7 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug)]
 pub struct KitchenToml {
     pub name: Option<String>,
+    pub system_packages: Option<Vec<String>>,
     pub container: Option<Container>,
 
     #[serde(flatten)]

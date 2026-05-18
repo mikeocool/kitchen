@@ -7,9 +7,8 @@ use crate::config::KitchenToml;
 use crate::image::{Containerfile, ContextFile};
 use crate::kitchen::KitchenConfig;
 
-pub mod dotfiles;
-
 pub mod docker;
+pub mod dotfiles;
 pub mod mise;
 pub mod pitchfork;
 pub mod tailscale;
